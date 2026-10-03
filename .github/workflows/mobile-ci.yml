@@ -1,0 +1,92 @@
+name: Mobile app CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "public/app/**"
+      - ".github/workflows/mobile-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Build web bundle
+        run: npm run build
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Apply branded native assets
+        run: node scripts/native-assets.mjs
+      - name: Sync Android
+        run: npx cap sync android
+      - name: Build release app bundle
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew bundleRelease
+      - name: Upload unsigned Android bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-care-365-android-unsigned-aab
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+  ios:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Build web bundle
+        run: npm run build
+      - name: Generate iOS project
+        run: npx cap add ios
+      - name: Apply branded native assets
+        run: node scripts/native-assets.mjs
+      - name: Sync iOS
+        run: npx cap sync ios
+      - name: Compile iOS app without signing
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Upload iOS simulator build
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-care-365-ios-simulator
+          path: mobile/build/ios/Build/Products/Release-iphonesimulator/App.app
+          if-no-files-found: error
