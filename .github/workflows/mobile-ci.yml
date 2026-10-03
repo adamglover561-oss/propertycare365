@@ -77,7 +77,7 @@ jobs:
       - name: Compile iOS app without signing
         run: |
           xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphonesimulator \
