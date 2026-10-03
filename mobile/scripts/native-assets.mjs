@@ -12,10 +12,10 @@ const icon=Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" hei
 </svg>`);
 
 await mkdir('assets',{recursive:true});
-await sharp(icon).png().toFile('assets/store-icon.png');
+await sharp(icon).flatten({background:'#08111f'}).png().toFile('assets/store-icon.png');
 
 if(await exists('ios/App/App/Assets.xcassets/AppIcon.appiconset')){
-  await sharp(icon).resize(1024,1024).png().toFile('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
+  await sharp(icon).resize(1024,1024).flatten({background:'#08111f'}).png().toFile('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
 }
 
 if(await exists('android/app/src/main/res')){
@@ -23,9 +23,9 @@ if(await exists('android/app/src/main/res')){
     const dir=`android/app/src/main/res/mipmap-${density}`;
     if(!(await exists(dir)))continue;
     for(const name of ['ic_launcher','ic_launcher_round']){
-      await sharp(icon).resize(size,size).png().toFile(`${dir}/${name}.png`);
+      await sharp(icon).resize(size,size).flatten({background:'#08111f'}).png().toFile(`${dir}/${name}.png`);
     }
-    await sharp(icon).resize(Math.round(size*2.25),Math.round(size*2.25)).png().toFile(`${dir}/ic_launcher_foreground.png`);
+    await sharp(icon).resize(Math.round(size*2.25),Math.round(size*2.25)).flatten({background:'#08111f'}).png().toFile(`${dir}/ic_launcher_foreground.png`);
   }
   for(const path of ['android/app/src/main/res/drawable/ic_launcher_background.xml','android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml']){
     if(!(await exists(path)))continue;
