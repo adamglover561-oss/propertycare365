@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {upcomingReminders} from '../src/reminders.mjs';
+const now=Date.UTC(2026,9,3);const job={id:'job',status:'scheduled',calendar_sync_status:'synced',scheduled_for:new Date(now+48*3600000).toISOString()};
+test('only confirmed future jobs create reminders',()=>{const list=upcomingReminders([job,{...job,status:'requested'},{...job,calendar_sync_status:'pending'},{...job,scheduled_for:'invalid'}],now);assert.equal(list.length,2);assert.equal(+list[0].schedule.at,now+24*3600000);assert.equal(+list[1].schedule.at,now+47*3600000);});
+test('past reminders removed; pending limit respected',()=>{assert.equal(upcomingReminders([{...job,scheduled_for:new Date(now+30*60000).toISOString()}],now).length,0);const list=upcomingReminders(Array.from({length:50},(_,i)=>({...job,id:String(i)})),now);assert.equal(list.length,60);assert.equal(new Set(list.map(n=>n.id)).size,60);});

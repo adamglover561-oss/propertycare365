@@ -1,0 +1,6 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';import sharp from 'sharp';
+const icon=Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="1024" height="1024" fill="#08111f"/><rect x="148" y="148" width="728" height="728" rx="192" fill="#47b9ff"/><text x="512" y="600" text-anchor="middle" font-family="Arial,sans-serif" font-size="308" font-weight="800" fill="#04111f">PC</text></svg>');
+await mkdir('assets',{recursive:true});await sharp(icon).png().toFile('assets/store-icon.png');
+await sharp(icon).resize(1024,1024).png().toFile('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
+for(const [density,size] of Object.entries({mdpi:48,hdpi:72,xhdpi:96,xxhdpi:144,xxxhdpi:192})){for(const name of ['ic_launcher','ic_launcher_round'])await sharp(icon).resize(size,size).png().toFile(`android/app/src/main/res/mipmap-${density}/${name}.png`);await sharp(icon).resize(Math.round(size*2.25),Math.round(size*2.25)).png().toFile(`android/app/src/main/res/mipmap-${density}/ic_launcher_foreground.png`);}
+for(const path of ['android/app/src/main/res/drawable/ic_launcher_background.xml','android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml']){const contents=await readFile(path,'utf8');await writeFile(path,contents.replace(/#FFFFFF/g,'#08111f'));}
