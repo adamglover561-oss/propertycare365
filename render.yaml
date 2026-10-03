@@ -2,6 +2,8 @@ services:
   - type: web
     runtime: static
     name: propertycare365
+    domains:
+      - propertycare365.co.uk
     buildCommand: echo 'Static frontend ready'
     staticPublishPath: public
     headers:
