@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="index,follow">
+<title>Delete your Property Care 365 account</title>
+<style>
+:root{--bg:#08111f;--panel:#101b2e;--text:#f7f9fc;--muted:#9fb0c8;--line:#263a57;--brand:#45b7ff;--bad:#f97066}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#07101c,#0b1525);color:var(--text);min-height:100vh}.wrap{max-width:720px;margin:auto;padding:32px 18px 70px}.card{background:rgba(16,27,46,.96);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:14px}.muted{color:var(--muted);line-height:1.55}.field{display:grid;gap:6px;margin:10px 0}.field label{font-size:13px;color:#c7d4e6}.field input{width:100%;background:#091525;color:white;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:16px}.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:750;cursor:pointer}.primary{background:linear-gradient(135deg,var(--brand),#3b82f6);color:#04111f}.danger{background:#3a171b;color:#ffd5d0;border:1px solid #7a3038}.secondary{background:#152742;color:white;border:1px solid var(--line)}.stack{display:grid;gap:10px}.hidden{display:none!important}.notice{padding:12px 14px;border-radius:12px;background:#142742;border:1px solid var(--line);font-size:13px}a{color:#82cfff}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+<h1>Delete your Property Care 365 account</h1>
+<p class="muted">You can request deletion without reinstalling the app. Sign in with the same Property Care 365 account, then submit the request below.</p>
+<div class="notice">Deletion requests are processed within 30 days. We delete or anonymise personal data that is no longer required. Some transaction, tax, service-safety or legal records may be retained where the law requires or permits this. Active memberships and outstanding charges are reviewed as part of the deletion request.</div>
+</div>
+
+<div id="signInCard" class="card">
+<h2>Sign in</h2>
+<form id="signInForm" class="stack">
+<div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required></div>
+<div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+<button class="btn primary" type="submit">Sign in</button>
+</form>
+</div>
+
+<div id="deleteCard" class="card hidden">
+<h2>Request account deletion</h2>
+<p id="signedInAs" class="muted"></p>
+<p class="muted">Submitting this request starts the deletion process for your Property Care 365 account and associated personal data.</p>
+<button id="deleteBtn" class="btn danger" type="button">Request account deletion</button>
+<button id="signOutBtn" class="btn secondary" type="button">Sign out</button>
+</div>
+
+<div class="card">
+<p class="muted">Need help? Email <a href="mailto:adamglover561@gmail.com">adamglover561@gmail.com</a>.</p>
+<p class="muted"><a href="/privacy/">Privacy notice</a> · <a href="/terms/">Membership terms</a> · <a href="/">Property Care 365</a></p>
+</div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+const supabase=createClient("https://zwehrboymqtmzrqucyyc.supabase.co","sb_publishable_L6cuXJdswjOHnXA0Sl9_2g_K3iTrL31");
+const el=id=>document.getElementById(id);
+
+async function showSession(){
+  const {data:{session}}=await supabase.auth.getSession();
+  const logged=Boolean(session?.user);
+  el("signInCard").classList.toggle("hidden",logged);
+  el("deleteCard").classList.toggle("hidden",!logged);
+  if(logged)el("signedInAs").textContent="Signed in as "+(session.user.email||"your account")+".";
+}
+el("signInForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const {error}=await supabase.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});
+  if(error)return alert(error.message);
+  await showSession();
+});
+el("signOutBtn").onclick=async()=>{await supabase.auth.signOut();await showSession();};
+el("deleteBtn").onclick=async()=>{
+  if(!confirm("Request deletion of this Property Care 365 account?"))return;
+  if(!confirm("Are you sure? The request will be processed within 30 days."))return;
+  el("deleteBtn").disabled=true;
+  try{
+    const {data,error}=await supabase.functions.invoke("request-account-deletion",{body:{}});
+    if(error)throw error;
+    alert(data?.message||"Account deletion requested.");
+    await supabase.auth.signOut();
+    await showSession();
+  }catch(error){alert("Could not request account deletion: "+error.message);}
+  finally{el("deleteBtn").disabled=false;}
+};
+supabase.auth.onAuthStateChange(()=>setTimeout(showSession,0));
+await showSession();
+</script>
+</body>
+</html>
