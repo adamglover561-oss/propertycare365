@@ -28,6 +28,16 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <div class="field"><label>Email</label><input id="email" type="email" required autocomplete="email"></div>
 <div class="field"><label>Password</label><input id="password" type="password" required autocomplete="current-password"></div>
 <button class="btn primary">Sign in</button>
+<button id="showSetupBtn" class="btn secondary" type="button">First time owner setup</button>
+</form>
+<form id="setupForm" class="stack hidden">
+<h3 style="margin:0">Create owner login</h3>
+<div class="muted small">Use the owner email address already authorised for Property Care 365. Other accounts cannot open the dashboard.</div>
+<div class="field"><label>Email</label><input id="setupEmail" type="email" required autocomplete="email"></div>
+<div class="field"><label>Create password</label><input id="setupPassword" type="password" minlength="8" required autocomplete="new-password"></div>
+<div class="field"><label>Confirm password</label><input id="setupPassword2" type="password" minlength="8" required autocomplete="new-password"></div>
+<button class="btn primary">Create owner login</button>
+<button id="cancelSetupBtn" class="btn secondary" type="button">Back to sign in</button>
 </form>
 </div>
 
@@ -128,6 +138,20 @@ function propLabel(p){const c=customer(p.customer_id);return (p.property_name||p
 function msg(text){el("loginMsg").textContent=text;el("loginMsg").classList.remove("hidden")}
 
 el("loginForm").addEventListener("submit",async e=>{e.preventDefault();el("loginMsg").classList.add("hidden");const {error}=await supabase.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error)msg(error.message)});
+el("showSetupBtn").onclick=()=>{el("loginForm").classList.add("hidden");el("setupForm").classList.remove("hidden");el("loginMsg").classList.add("hidden")};
+el("cancelSetupBtn").onclick=()=>{el("setupForm").classList.add("hidden");el("loginForm").classList.remove("hidden");el("loginMsg").classList.add("hidden")};
+el("setupForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  el("loginMsg").classList.add("hidden");
+  const email=el("setupEmail").value.trim(),password=el("setupPassword").value;
+  if(password!==el("setupPassword2").value)return msg("Passwords do not match.");
+  const {data,error}=await supabase.auth.signUp({email,password});
+  if(error)return msg(error.message);
+  if(!data.session){
+    el("setupForm").classList.add("hidden");el("loginForm").classList.remove("hidden");
+    msg("Owner login created. Check your email to confirm the account, then sign in here.");
+  }
+});
 el("logoutBtn").onclick=()=>supabase.auth.signOut();
 
 async function verifyAdmin(){
