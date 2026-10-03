@@ -1,6 +1,6 @@
 # Property Care 365 mobile
 
-Android and iPhone customer app source for Adam Glover Plumbing & Heating. App identifier: `uk.co.propertycare360.app`. This is a development project, not a signed store release.
+Android and iPhone customer app source for Adam Glover Plumbing & Heating. App identifier: `uk.co.propertycare365.app`. This project targets both the Apple App Store and Google Play; native signing and store submission still require the owner's developer accounts.
 
 The customer portal is bundled into the app from `../public/app/index.html`; it connects to the same Supabase account and RLS-protected data. Stripe checkout, invoices and signed report URLs open in the native browser. Sign-up confirmation returns to the website; customers return to the app and sign in with their confirmed credentials. Website changes require a fresh app build and store update.
 
@@ -36,7 +36,7 @@ Only run `cap add` once for each platform. Open using `npx cap open android` or 
 
 Store description draft: Manage your Property Care 365 membership from your phone. Keep your properties together, request plumbing and heating visits, book maintenance, and view your reports and billing. Optional reminders help you remember confirmed appointments. Gas and LPG properties are supported. The app is free to download; service memberships and chargeable materials are paid separately. Membership is a service agreement, not insurance.
 
-Support: adamglover561@gmail.com. Privacy: https://propertycare360.co.uk/privacy/. Terms: https://propertycare360.co.uk/terms/. App-store approval is not guaranteed; Apple assesses utility beyond a repackaged website.
+Support: adamglover561@gmail.com. Privacy: https://propertycare365.co.uk/privacy/. Terms: https://propertycare365.co.uk/terms/. App-store approval is not guaranteed; Apple assesses utility beyond a repackaged website.
 
 Validation completed in the development environment: frontend bundle build, native Android/iOS generation and synchronization, two reminder tests. No Android SDK or Xcode is available here, so native compilation, signing and device testing are not yet verified.
 
