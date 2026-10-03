@@ -91,7 +91,7 @@ async function processCheckoutCompleted(session: Record<string, any>) {
   const { error: customerError } = await supabase
     .from("customers")
     .update({ stripe_customer_id: stripeCustomerId, updated_at: new Date().toISOString() })
-    .eq("id", customerId);
+    .eq("id", customerId).is("stripe_customer_id", null);
   if (customerError) throw customerError;
 
   const subscriptionStatus =
@@ -158,51 +158,60 @@ async function processCheckoutCompleted(session: Record<string, any>) {
   if (plumbingDueError) throw plumbingDueError;
 
   const amount = typeof session.amount_total === "number" ? session.amount_total : plan.monthly_price_pence;
-  const { error: billingError } = await supabase.from("billing_records").insert({
+  const bill = {
     customer_id: customerId,
     property_id: propertyId,
     stripe_checkout_session_id: session.id,
+    stripe_invoice_id: getId(session.invoice),
     record_type: "subscription",
     amount_pence: amount,
     currency: session.currency || "gbp",
     status: subscriptionStatus === "active" ? "paid" : "pending",
     description: "Property Care 365 subscription signup"
-  });
-  if (billingError && billingError.code !== "23505") throw billingError;
+  };
+  const invoiceId = getId(session.invoice);
+  const filter = "stripe_checkout_session_id.eq."+session.id + (invoiceId ? ",stripe_invoice_id.eq."+invoiceId : "");
+  const {data: updatedBill, error: updateError} = await supabase.from("billing_records")
+    .update({...bill,updated_at:new Date().toISOString()}).or(filter).select("id").maybeSingle();
+  if(updateError)throw updateError;
+  if(!updatedBill){
+    const {error: billingError}=await supabase.from("billing_records").insert(bill);
+    if(billingError)throw billingError;
+  }
 }
 
 async function processInvoice(invoice: Record<string, any>, paid: boolean) {
   const stripeCustomerId = getId(invoice.customer);
-  const stripeSubscriptionId = getId(invoice.subscription);
+  const stripeSubscriptionId = getId(invoice.parent?.subscription_details?.subscription) || getId(invoice.subscription);
   if (!stripeCustomerId) return;
 
-  const { data: customer, error: customerError } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("stripe_customer_id", stripeCustomerId)
-    .maybeSingle();
-  if (customerError) throw customerError;
-  if (!customer) return;
-
+  // Payment Links can create a separate Stripe customer for each property.
+  // Resolve recurring invoices by subscription before using the latest customer ID.
   let subscriptionDbId: string | null = null;
+  let customerId: string | null = null;
   if (stripeSubscriptionId) {
-    const { data: sub, error: subError } = await supabase
-      .from("subscriptions")
-      .select("id")
-      .eq("stripe_subscription_id", stripeSubscriptionId)
-      .maybeSingle();
-    if (subError) throw subError;
+    const { data: sub, error } = await supabase.from("subscriptions")
+      .select("id,customer_id").eq("stripe_subscription_id", stripeSubscriptionId).maybeSingle();
+    if (error) throw error;
     subscriptionDbId = sub?.id ?? null;
-
-    const { error: statusError } = await supabase
-      .from("subscriptions")
-      .update({
-        status: paid ? "active" : "past_due",
-        updated_at: new Date().toISOString()
-      })
-      .eq("stripe_subscription_id", stripeSubscriptionId);
-    if (statusError) throw statusError;
+    customerId = sub?.customer_id ?? null;
+    if (!sub && invoice.parent?.subscription_details?.metadata?.app === "property_care_365") {
+      throw new Error("Subscription checkout is not processed yet; retry invoice");
+    }
+    if (sub) {
+      const { error: statusError } = await supabase.from("subscriptions")
+        .update({ status: paid ? "active" : "past_due", updated_at: new Date().toISOString() })
+        .eq("id", sub.id);
+      if (statusError) throw statusError;
+    }
   }
+  if (!customerId) {
+    const { data: customer, error } = await supabase.from("customers")
+      .select("id").eq("stripe_customer_id", stripeCustomerId).maybeSingle();
+    if (error) throw error;
+    customerId = customer?.id ?? null;
+  }
+  if (!customerId) return;
 
   let propertyId: string | null = null;
   if (subscriptionDbId) {
@@ -238,7 +247,7 @@ async function processInvoice(invoice: Record<string, any>, paid: boolean) {
   if (existingBill) return;
 
   const { error: billError } = await supabase.from("billing_records").insert({
-    customer_id: customer.id,
+    customer_id: customerId,
     property_id: propertyId,
     stripe_invoice_id: invoice.id,
     record_type: "subscription",
@@ -260,7 +269,7 @@ async function processSubscription(obj: Record<string, any>, forceCanceled = fal
   const periodStart = obj.current_period_start ?? firstItem?.current_period_start ?? null;
   const periodEnd = obj.current_period_end ?? firstItem?.current_period_end ?? null;
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("subscriptions")
     .update({
       status: forceCanceled ? "canceled" : mapSubStatus(obj.status),
@@ -269,8 +278,9 @@ async function processSubscription(obj: Record<string, any>, forceCanceled = fal
       cancel_at_period_end: Boolean(obj.cancel_at_period_end),
       updated_at: new Date().toISOString()
     })
-    .eq("stripe_subscription_id", stripeSubscriptionId);
+    .eq("stripe_subscription_id", stripeSubscriptionId).select("id");
   if (error) throw error;
+  if (!updated?.length && obj.metadata?.app === "property_care_365") throw new Error("Checkout must be processed before subscription update");
 }
 
 Deno.serve(async (req: Request) => {
@@ -317,6 +327,7 @@ Deno.serve(async (req: Request) => {
     const obj = event.data?.object as Record<string, any>;
     switch (eventType) {
       case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded":
         await processCheckoutCompleted(obj);
         break;
       case "invoice.paid":
@@ -341,4 +352,5 @@ Deno.serve(async (req: Request) => {
     return new Response("Webhook processing failed", { status: 500 });
   }
 });
+
 

@@ -25,17 +25,17 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <div class="notice">This area is restricted to the Property Care 365 owner account.</div>
 <div id="loginMsg" class="notice hidden"></div>
 <form id="loginForm" class="stack">
-<div class="field"><label>Email</label><input id="email" type="email" required autocomplete="email"></div>
-<div class="field"><label>Password</label><input id="password" type="password" required autocomplete="current-password"></div>
+<div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="email"></div>
+<div class="field"><label for="password">Password</label><input id="password" type="password" required autocomplete="current-password"></div>
 <button class="btn primary">Sign in</button>
 <button id="showSetupBtn" class="btn secondary" type="button">First time owner setup</button>
 </form>
 <form id="setupForm" class="stack hidden">
 <h3 style="margin:0">Create owner login</h3>
 <div class="muted small">Use the owner email address already authorised for Property Care 365. Other accounts cannot open the dashboard.</div>
-<div class="field"><label>Email</label><input id="setupEmail" type="email" required autocomplete="email"></div>
-<div class="field"><label>Create password</label><input id="setupPassword" type="password" minlength="8" required autocomplete="new-password"></div>
-<div class="field"><label>Confirm password</label><input id="setupPassword2" type="password" minlength="8" required autocomplete="new-password"></div>
+<div class="field"><label for="setupEmail">Email</label><input id="setupEmail" type="email" required autocomplete="email"></div>
+<div class="field"><label for="setupPassword">Create password</label><input id="setupPassword" type="password" minlength="8" required autocomplete="new-password"></div>
+<div class="field"><label for="setupPassword2">Confirm password</label><input id="setupPassword2" type="password" minlength="8" required autocomplete="new-password"></div>
 <button class="btn primary">Create owner login</button>
 <button id="cancelSetupBtn" class="btn secondary" type="button">Back to sign in</button>
 </form>
@@ -66,13 +66,13 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <div class="grid">
 <form id="newJobForm" class="card stack">
 <h3 class="section-title">Create / schedule job</h3>
-<div class="field"><label>Property</label><select id="newJobProperty" required></select></div>
+<div class="field"><label for="newJobProperty">Property</label><select id="newJobProperty" required></select></div>
 <div class="grid">
-<div class="field"><label>Type</label><select id="newJobType"><option value="annual_service">Annual service</option><option value="plumbing_check">Yearly plumbing check</option><option value="repair">Repair</option><option value="inspection">Inspection</option><option value="other">Other</option></select></div>
-<div class="field"><label>Scheduled for</label><input id="newJobDate" type="datetime-local"></div>
+<div class="field"><label for="newJobType">Type</label><select id="newJobType"><option value="annual_service">Annual service</option><option value="plumbing_check">Yearly plumbing check</option><option value="repair">Repair</option><option value="inspection">Inspection</option><option value="other">Other</option></select></div>
+<div class="field"><label for="newJobDate">Scheduled for</label><input id="newJobDate" type="datetime-local"></div>
 </div>
-<div class="field"><label>Title</label><input id="newJobTitle" required placeholder="Annual boiler service"></div>
-<div class="field"><label>Description</label><textarea id="newJobDesc"></textarea></div>
+<div class="field"><label for="newJobTitle">Title</label><input id="newJobTitle" required placeholder="Annual boiler service"></div>
+<div class="field"><label for="newJobDesc">Description</label><textarea id="newJobDesc"></textarea></div>
 <button class="btn primary">Create job</button>
 </form>
 <div class="card"><h3 class="section-title">Job queue</h3><div id="jobQueue"></div></div>
@@ -87,11 +87,11 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <div class="grid">
 <form id="reportForm" class="card stack">
 <h3 class="section-title">Add report</h3>
-<div class="field"><label>Property</label><select id="reportProperty" required></select></div>
-<div class="field"><label>Related job (optional)</label><select id="reportJob"><option value="">None</option></select></div>
-<div class="field"><label>Report type</label><select id="reportType"><option>Annual service report</option><option>Plumbing inspection report</option><option>Breakdown report</option><option>Remedial work report</option><option>Other report</option></select></div>
-<div class="field"><label>Summary</label><textarea id="reportSummary" required></textarea></div>
-<div class="field"><label>PDF or photo (optional)</label><input id="reportFile" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+<div class="field"><label for="reportProperty">Property</label><select id="reportProperty" required></select></div>
+<div class="field"><label for="reportJob">Related job (optional)</label><select id="reportJob"><option value="">None</option></select></div>
+<div class="field"><label for="reportType">Report type</label><select id="reportType"><option>Annual service report</option><option>Plumbing inspection report</option><option>Breakdown report</option><option>Remedial work report</option><option>Other report</option></select></div>
+<div class="field"><label for="reportSummary">Summary</label><textarea id="reportSummary" required></textarea></div>
+<div class="field"><label for="reportFile">PDF or photo (optional)</label><input id="reportFile" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
 <button class="btn primary">Save report</button>
 </form>
 <div class="card"><h3 class="section-title">Report history</h3><div id="reportsList"></div></div>
@@ -102,10 +102,10 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <div class="grid">
 <form id="chargeForm" class="card stack">
 <h3 class="section-title">Record charge</h3>
-<div class="field"><label>Property</label><select id="chargeProperty" required></select></div>
-<div class="field"><label>Related job (optional)</label><select id="chargeJob"><option value="">None</option></select></div>
-<div class="grid"><div class="field"><label>Charge type</label><select id="chargeType"><option value="materials">Materials</option><option value="repair">Repair</option><option value="other">Other</option></select></div><div class="field"><label>Amount £</label><input id="chargeAmount" type="number" min="0" step="0.01" required></div></div>
-<div class="field"><label>Description</label><input id="chargeDesc" required placeholder="Replacement PRV and fittings"></div>
+<div class="field"><label for="chargeProperty">Property</label><select id="chargeProperty" required></select></div>
+<div class="field"><label for="chargeJob">Related job (optional)</label><select id="chargeJob"><option value="">None</option></select></div>
+<div class="grid"><div class="field"><label for="chargeType">Charge type</label><select id="chargeType"><option value="materials">Materials</option><option value="repair">Repair</option><option value="other">Other</option></select></div><div class="field"><label for="chargeAmount">Amount £</label><input id="chargeAmount" type="number" min="0" step="0.01" required></div></div>
+<div class="field"><label for="chargeDesc">Description</label><input id="chargeDesc" required placeholder="Replacement PRV and fittings"></div>
 <button class="btn primary">Record charge</button>
 </form>
 <div class="card"><h3 class="section-title">Billing records</h3><div id="billingList"></div></div>
@@ -145,7 +145,7 @@ el("setupForm").addEventListener("submit",async e=>{
   el("loginMsg").classList.add("hidden");
   const email=el("setupEmail").value.trim(),password=el("setupPassword").value;
   if(password!==el("setupPassword2").value)return msg("Passwords do not match.");
-  const {data,error}=await supabase.auth.signUp({email,password});
+  const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:location.origin+"/admin/"}});
   if(error)return msg(error.message);
   if(!data.session){
     el("setupForm").classList.add("hidden");el("loginForm").classList.remove("hidden");
@@ -231,7 +231,7 @@ async function sessionChanged(session){
   if(!logged){el("loginView").classList.remove("hidden");el("adminView").classList.add("hidden");el("logoutBtn").classList.add("hidden");return}
   try{if(!(await verifyAdmin())){await supabase.auth.signOut();msg("This account is not authorised for the owner dashboard.");return}el("loginView").classList.add("hidden");el("adminView").classList.remove("hidden");el("logoutBtn").classList.remove("hidden");await load()}catch(err){console.error(err);msg(err.message||"Admin check failed")}
 }
-const ses=await supabase.auth.getSession();await sessionChanged(ses.data.session);supabase.auth.onAuthStateChange(async(_e,session)=>sessionChanged(session));
+const ses=await supabase.auth.getSession();await sessionChanged(ses.data.session);supabase.auth.onAuthStateChange((_e,session)=>{setTimeout(()=>{void sessionChanged(session);},0);});
 </script>
 </body>
 </html>
