@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08111f">
+<title>Property Care 365 Admin</title>
+<style>
+:root{--bg:#08111f;--panel:#101b2e;--panel2:#0b1728;--text:#f7f9fc;--muted:#9fb0c8;--line:#263a57;--brand:#45b7ff;--good:#32d583;--warn:#fdb022;--bad:#f97066}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#07101c,#0b1525 45%,#0a1220);color:var(--text);min-height:100vh}
+button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 80px}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--brand),#2e6cff);display:grid;place-items:center;font-weight:900;color:#04111f}.brand h1{margin:0;font-size:20px}.brand small{color:var(--muted)}
+.card{background:rgba(16,27,46,.94);border:1px solid var(--line);border-radius:18px;padding:17px;margin-bottom:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{background:#0b1728;border:1px solid var(--line);border-radius:15px;padding:15px}.stat strong{display:block;font-size:25px}.stat span{color:var(--muted);font-size:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.stack{display:grid;gap:10px}.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:750;cursor:pointer}.primary{background:linear-gradient(135deg,var(--brand),#3b82f6);color:#04111f}.secondary{background:#152742;color:#fff;border:1px solid var(--line)}.goodbtn{background:#123425;color:#b9f4d4;border:1px solid #23593f}.danger{background:#35181c;color:#ffd4cf;border:1px solid #6d2b33}.muted{color:var(--muted)}.small{font-size:13px}.hidden{display:none!important}
+.tabs{display:flex;gap:8px;overflow:auto;padding-bottom:4px;margin-bottom:14px}.tabs button{white-space:nowrap;background:#0c1728;color:var(--muted);border:1px solid var(--line);padding:10px 13px;border-radius:11px}.tabs button.active{background:#18304e;color:#fff;border-color:#35547a}
+.field{display:grid;gap:6px}.field label{color:#c7d4e6;font-size:13px}.field input,.field select,.field textarea{width:100%;background:#091525;color:#fff;border:1px solid var(--line);border-radius:11px;padding:11px;outline:none}.field textarea{min-height:85px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
+.item{background:#0b1728;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:9px}.item h4{margin:0 0 4px}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;background:#172b45;border:1px solid var(--line)}.tag.good{color:#b9f4d4;background:#0d2b1f;border-color:#23593f}.tag.warn{color:#ffe1a1;background:#2c210b;border-color:#66501b}.tag.bad{color:#ffd4cf;background:#32171b;border-color:#6d2b33}.notice{padding:11px 13px;border-radius:12px;background:#142742;border:1px solid var(--line);font-size:13px}.auth{max-width:520px;margin:55px auto}.section-title{font-size:18px;margin:0 0 12px}.empty{text-align:center;color:var(--muted);padding:24px 8px}.actions{display:flex;gap:8px;flex-wrap:wrap}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}.table th{color:#c7d4e6}.table td{color:#e7eef9}a{color:#83ceff;text-decoration:none}
+@media(max-width:780px){.grid,.grid4{grid-template-columns:1fr}.row.mobile{align-items:stretch;flex-direction:column}.wrap{padding-left:12px;padding-right:12px}.top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><div class="brand"><div class="logo">PC</div><div><h1>Property Care 365 Admin</h1><small>Adam Glover Plumbing & Heating</small></div></div><button id="logoutBtn" class="btn secondary hidden">Log out</button></div>
+
+<div id="loginView" class="card auth stack">
+<h2 style="margin:0">Owner sign in</h2>
+<div class="notice">This area is restricted to the Property Care 365 owner account.</div>
+<div id="loginMsg" class="notice hidden"></div>
+<form id="loginForm" class="stack">
+<div class="field"><label>Email</label><input id="email" type="email" required autocomplete="email"></div>
+<div class="field"><label>Password</label><input id="password" type="password" required autocomplete="current-password"></div>
+<button class="btn primary">Sign in</button>
+</form>
+</div>
+
+<main id="adminView" class="hidden">
+<div class="tabs">
+<button data-tab="overview" class="active">Overview</button>
+<button data-tab="jobs">Jobs</button>
+<button data-tab="customers">Customers & properties</button>
+<button data-tab="reports">Reports</button>
+<button data-tab="billing">Billing</button>
+<button data-tab="leads">B2B leads</button>
+</div>
+
+<section id="overviewTab">
+<div class="grid4">
+<div class="stat"><strong id="nCustomers">0</strong><span>Customers</span></div>
+<div class="stat"><strong id="nProperties">0</strong><span>Properties</span></div>
+<div class="stat"><strong id="nOpenJobs">0</strong><span>Open jobs</span></div>
+<div class="stat"><strong id="nCovered">0</strong><span>Covered properties</span></div>
+</div>
+<div class="card" style="margin-top:14px"><h3 class="section-title">Incoming work</h3><div id="incomingJobs"></div></div>
+<div class="card"><h3 class="section-title">Recent customers</h3><div id="recentCustomers"></div></div>
+</section>
+
+<section id="jobsTab" class="hidden">
+<div class="grid">
+<form id="newJobForm" class="card stack">
+<h3 class="section-title">Create / schedule job</h3>
+<div class="field"><label>Property</label><select id="newJobProperty" required></select></div>
+<div class="grid">
+<div class="field"><label>Type</label><select id="newJobType"><option value="annual_service">Annual service</option><option value="plumbing_check">Yearly plumbing check</option><option value="repair">Repair</option><option value="inspection">Inspection</option><option value="other">Other</option></select></div>
+<div class="field"><label>Scheduled for</label><input id="newJobDate" type="datetime-local"></div>
+</div>
+<div class="field"><label>Title</label><input id="newJobTitle" required placeholder="Annual boiler service"></div>
+<div class="field"><label>Description</label><textarea id="newJobDesc"></textarea></div>
+<button class="btn primary">Create job</button>
+</form>
+<div class="card"><h3 class="section-title">Job queue</h3><div id="jobQueue"></div></div>
+</div>
+</section>
+
+<section id="customersTab" class="hidden">
+<div class="card"><h3 class="section-title">Customers & properties</h3><div id="customersList"></div></div>
+</section>
+
+<section id="reportsTab" class="hidden">
+<div class="grid">
+<form id="reportForm" class="card stack">
+<h3 class="section-title">Add report</h3>
+<div class="field"><label>Property</label><select id="reportProperty" required></select></div>
+<div class="field"><label>Related job (optional)</label><select id="reportJob"><option value="">None</option></select></div>
+<div class="field"><label>Report type</label><select id="reportType"><option>Annual service report</option><option>Plumbing inspection report</option><option>Breakdown report</option><option>Remedial work report</option><option>Other report</option></select></div>
+<div class="field"><label>Summary</label><textarea id="reportSummary" required></textarea></div>
+<div class="field"><label>PDF or photo (optional)</label><input id="reportFile" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+<button class="btn primary">Save report</button>
+</form>
+<div class="card"><h3 class="section-title">Report history</h3><div id="reportsList"></div></div>
+</div>
+</section>
+
+<section id="billingTab" class="hidden">
+<div class="grid">
+<form id="chargeForm" class="card stack">
+<h3 class="section-title">Record charge</h3>
+<div class="field"><label>Property</label><select id="chargeProperty" required></select></div>
+<div class="field"><label>Related job (optional)</label><select id="chargeJob"><option value="">None</option></select></div>
+<div class="grid"><div class="field"><label>Charge type</label><select id="chargeType"><option value="materials">Materials</option><option value="repair">Repair</option><option value="other">Other</option></select></div><div class="field"><label>Amount £</label><input id="chargeAmount" type="number" min="0" step="0.01" required></div></div>
+<div class="field"><label>Description</label><input id="chargeDesc" required placeholder="Replacement PRV and fittings"></div>
+<button class="btn primary">Record charge</button>
+</form>
+<div class="card"><h3 class="section-title">Billing records</h3><div id="billingList"></div></div>
+</div>
+</section>
+
+<section id="leadsTab" class="hidden">
+<div class="card"><div class="row"><div><h3 class="section-title">B2B launch leads</h3><div class="muted small">Verified limited-company property managers. Use corporate contact routes and honour any opt-out.</div></div></div><div id="leadsList" style="margin-top:12px"></div></div>
+</section>
+</main>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+const URL="https://zwehrboymqtmzrqucyyc.supabase.co";
+const KEY="sb_publishable_L6cuXJdswjOHnXA0Sl9_2g_K3iTrL31";
+const supabase=createClient(URL,KEY);
+const el=id=>document.getElementById(id);
+let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[]};
+
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const date=v=>v?new Date(v).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+const money=p=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format((p||0)/100);
+function tag(st){const a=["active","completed","paid"],b=["failed","canceled","past_due","unpaid"],c=a.includes(st)?"good":b.includes(st)?"bad":"warn";return '<span class="tag '+c+'">'+esc((st||"pending").replaceAll("_"," "))+"</span>";}
+function customer(id){return s.customers.find(x=>x.id===id)}
+function property(id){return s.properties.find(x=>x.id===id)}
+function sub(id){return s.subscriptions.find(x=>x.id===id)}
+function coverFor(pid){for(const c of s.covers.filter(x=>x.property_id===pid&&x.active)){const z=sub(c.subscription_id);if(z&&["active","trialing","past_due"].includes(z.status))return {cover:c,sub:z};}return null}
+function propLabel(p){const c=customer(p.customer_id);return (p.property_name||p.address_line1)+" — "+(c?.full_name||"Unknown")+" — "+p.postcode}
+function msg(text){el("loginMsg").textContent=text;el("loginMsg").classList.remove("hidden")}
+
+el("loginForm").addEventListener("submit",async e=>{e.preventDefault();el("loginMsg").classList.add("hidden");const {error}=await supabase.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(error)msg(error.message)});
+el("logoutBtn").onclick=()=>supabase.auth.signOut();
+
+async function verifyAdmin(){
+  const {data,error}=await supabase.rpc("is_home_care_admin");
+  if(error)throw error;
+  return data===true;
+}
+async function load(){
+  const qs=await Promise.all([
+    supabase.from("customers").select("*").order("created_at",{ascending:false}),
+    supabase.from("properties").select("*").order("created_at",{ascending:false}),
+    supabase.from("subscriptions").select("*").order("created_at",{ascending:false}),
+    supabase.from("property_cover").select("*").order("created_at",{ascending:false}),
+    supabase.from("jobs").select("*").order("created_at",{ascending:false}),
+    supabase.from("reports").select("*").order("created_at",{ascending:false}),
+    supabase.from("billing_records").select("*").order("created_at",{ascending:false}),
+    supabase.from("plans").select("*"),
+    supabase.from("leads").select("*").order("created_at",{ascending:true})
+  ]);
+  for(const q of qs)if(q.error)throw q.error;
+  [s.customers,s.properties,s.subscriptions,s.covers,s.jobs,s.reports,s.billing,s.plans,s.leads]=qs.map(q=>q.data||[]);
+  render();
+}
+function options(){
+  const ps=s.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(propLabel(p))+"</option>").join("");
+  ["newJobProperty","reportProperty","chargeProperty"].forEach(id=>el(id).innerHTML=ps);
+  const jobs='<option value="">None</option>'+s.jobs.map(j=>{const p=property(j.property_id);return '<option value="'+esc(j.id)+'">'+esc(j.title+" — "+(p?.property_name||p?.address_line1||"Property"))+"</option>"}).join("");
+  el("reportJob").innerHTML=jobs;el("chargeJob").innerHTML=jobs;
+}
+function jobCard(j){
+  const p=property(j.property_id),c=customer(j.customer_id);
+  const local=j.scheduled_for?new Date(new Date(j.scheduled_for).getTime()-new Date(j.scheduled_for).getTimezoneOffset()*60000).toISOString().slice(0,16):"";
+  const cal=j.calendar_sync_status||"not_required";
+  const calText=cal==="synced"?"Calendar confirmed":cal==="pending"?"Waiting for Calendar sync":cal==="conflict"?"Calendar conflict":cal==="error"?"Calendar sync error":"Not linked";
+  const calClass=cal==="synced"?"good":cal==="conflict"||cal==="error"?"bad":"warn";
+  return '<div class="item"><div class="row mobile"><div><h4>'+esc(j.title)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+" · "+esc(p?.postcode||"")+'</div><div class="small" style="margin-top:5px">'+esc(j.description||"")+'</div><div style="margin-top:6px"><span class="tag '+calClass+'">'+esc(calText)+'</span>'+(j.calendar_event_url?' · <a href="'+esc(j.calendar_event_url)+'" target="_blank">Open calendar event</a>':'')+'</div></div>'+tag(j.status)+'</div><div class="grid" style="margin-top:10px"><div class="field"><label>Schedule</label><input class="jobDate" data-id="'+j.id+'" type="datetime-local" value="'+esc(local)+'"></div><div class="field"><label>Status</label><select class="jobStatus" data-id="'+j.id+'"><option value="requested">Requested</option><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option></select></div></div><div class="field" style="margin-top:8px"><label>Engineer notes</label><textarea class="jobNotes" data-id="'+j.id+'">'+esc(j.notes||"")+'</textarea></div><div class="actions" style="margin-top:8px"><button class="btn secondary saveJob" data-id="'+j.id+'">Save</button><button class="btn goodbtn completeJob" data-id="'+j.id+'">Complete job</button></div></div>';
+}
+function render(){
+  el("nCustomers").textContent=s.customers.length;el("nProperties").textContent=s.properties.length;el("nOpenJobs").textContent=s.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;el("nCovered").textContent=s.properties.filter(p=>coverFor(p.id)).length;
+  const incoming=s.jobs.filter(j=>!["completed","canceled"].includes(j.status)).slice(0,8);
+  el("incomingJobs").innerHTML=incoming.length?incoming.map(jobCard).join(""):'<div class="empty">No open jobs.</div>';
+  el("jobQueue").innerHTML=s.jobs.length?s.jobs.map(jobCard).join(""):'<div class="empty">No jobs yet.</div>';
+  el("recentCustomers").innerHTML=s.customers.slice(0,6).map(c=>'<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+" · "+esc(c.phone||"No phone")+"</div></div>").join("")||'<div class="empty">No customers yet.</div>';
+  el("customersList").innerHTML=s.customers.map(c=>{const ps=s.properties.filter(p=>p.customer_id===c.id);return '<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+" · "+esc(c.phone||"No phone")+'</div><div style="margin-top:9px">'+ps.map(p=>'<div class="row" style="padding:7px 0;border-top:1px solid #263a57"><div><strong>'+esc(p.property_name||p.address_line1)+'</strong><div class="muted small">'+esc(p.address_line1+", "+p.town_city+", "+p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+"</div></div>"+(coverFor(p.id)?tag(coverFor(p.id).sub.status):'<span class="tag warn">not covered</span>')+"</div>").join("")+"</div></div>"}).join("")||'<div class="empty">No customers yet.</div>';
+  el("reportsList").innerHTML=s.reports.length?s.reports.map(r=>{const p=property(r.property_id),c=customer(r.customer_id);return '<div class="item"><div class="row"><div><h4>'+esc(r.report_type)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+'</div><div class="small" style="margin-top:5px">'+esc(r.summary||"")+"</div></div><div class='muted small'>"+date(r.created_at)+"</div></div>"+(r.storage_path?'<div style="margin-top:8px"><button class="btn secondary openReport" data-path="'+esc(r.storage_path)+'">Open file</button></div>':"")+"</div>"}).join(""):'<div class="empty">No reports yet.</div>';
+  el("billingList").innerHTML=s.billing.length?s.billing.map(b=>{const p=property(b.property_id),c=customer(b.customer_id);const inv=b.invoice_sync_status||"not_required";return '<div class="item"><div class="row mobile"><div><h4>'+esc(b.description||"Charge")+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+' · '+money(b.amount_pence)+'</div><div class="small" style="margin-top:5px">Invoice: '+esc(inv.replaceAll("_"," "))+(b.hosted_invoice_url?' · <a href="'+esc(b.hosted_invoice_url)+'" target="_blank">Open Stripe invoice</a>':'')+'</div></div>'+tag(b.status)+'</div><div class="actions" style="margin-top:8px">'+(b.status!=="paid"?'<button class="btn goodbtn markPaid" data-id="'+b.id+'">Mark paid</button>':"")+"</div></div>"}).join(""):'<div class="empty">No billing records yet.</div>';
+  el("leadsList").innerHTML=s.leads.length?s.leads.map(l=>{
+    const contact=l.contact_email?'<a href="mailto:'+esc(l.contact_email)+'">'+esc(l.contact_email)+'</a>':(l.contact_url?'<a href="'+esc(l.contact_url)+'" target="_blank">Open contact page</a>':'No contact route');
+    return '<div class="item"><div class="row mobile"><div><h4>'+esc(l.company_name)+'</h4><div class="muted small">'+esc(l.area||"")+' · Company '+esc(l.company_number||"")+'</div><div class="small" style="margin-top:5px">'+contact+'</div><div class="muted small" style="margin-top:5px">'+esc(l.notes||"")+'</div></div><div class="field" style="min-width:170px"><label>Outreach status</label><select class="leadStatus" data-id="'+esc(l.id)+'"><option value="not_contacted">Not contacted</option><option value="contacted">Contacted</option><option value="replied">Replied</option><option value="meeting">Meeting</option><option value="won">Won</option><option value="not_interested">Not interested</option><option value="do_not_contact">Do not contact</option></select></div></div></div>';
+  }).join(""):'<div class="empty">No B2B leads yet.</div>';
+  options();bind();
+}
+function bind(){
+  document.querySelectorAll(".jobStatus").forEach(x=>{const j=s.jobs.find(v=>v.id===x.dataset.id);if(j)x.value=j.status});
+  document.querySelectorAll(".saveJob").forEach(b=>b.onclick=()=>saveJob(b.dataset.id,false));
+  document.querySelectorAll(".completeJob").forEach(b=>b.onclick=()=>saveJob(b.dataset.id,true));
+  document.querySelectorAll(".markPaid").forEach(b=>b.onclick=async()=>{const {error}=await supabase.from("billing_records").update({status:"paid",updated_at:new Date().toISOString()}).eq("id",b.dataset.id);if(error)return alert(error.message);await load()});
+  document.querySelectorAll(".openReport").forEach(b=>b.onclick=async()=>{const {data,error}=await supabase.storage.from("home-care-reports").createSignedUrl(b.dataset.path,3600);if(error)return alert(error.message);window.open(data.signedUrl,"_blank")});
+  document.querySelectorAll(".leadStatus").forEach(x=>{
+    const lead=s.leads.find(v=>v.id===x.dataset.id); if(lead)x.value=lead.status;
+    x.onchange=async()=>{const patch={status:x.value};if(x.value==="contacted")patch.last_contacted_at=new Date().toISOString();const {error}=await supabase.from("leads").update(patch).eq("id",x.dataset.id);if(error)alert(error.message);};
+  });
+}
+async function saveJob(id,complete){
+  const dateEl=document.querySelector('.jobDate[data-id="'+id+'"]'),statusEl=document.querySelector('.jobStatus[data-id="'+id+'"]'),notesEl=document.querySelector('.jobNotes[data-id="'+id+'"]');
+  const status=complete?"completed":statusEl.value,dt=dateEl.value?new Date(dateEl.value).toISOString():null;
+  const patch={status,scheduled_for:dt,notes:notesEl.value||null,updated_at:new Date().toISOString()};if(dt && status!=="completed" && status!=="canceled")patch.calendar_sync_status="pending";if(status==="completed")patch.completed_at=new Date().toISOString();
+  const {error}=await supabase.from("jobs").update(patch).eq("id",id);if(error)return alert(error.message);await load();
+}
+el("newJobForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("newJobProperty").value);if(!p)return alert("Choose a property");const dt=el("newJobDate").value?new Date(el("newJobDate").value).toISOString():null;const {error}=await supabase.from("jobs").insert({property_id:p.id,customer_id:p.customer_id,job_type:el("newJobType").value,title:el("newJobTitle").value.trim(),description:el("newJobDesc").value.trim()||null,status:dt?"scheduled":"requested",scheduled_for:dt,duration_minutes:90,calendar_sync_status:dt?"pending":"not_required",booking_source:"admin",labour_covered:Boolean(coverFor(p.id))});if(error)return alert(error.message);e.target.reset();await load()});
+el("reportForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("reportProperty").value);if(!p)return;let path=null;const f=el("reportFile").files[0];if(f){path=p.customer_id+"/"+p.id+"/"+crypto.randomUUID()+"-"+f.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error:up}=await supabase.storage.from("home-care-reports").upload(path,f,{upsert:false,contentType:f.type||"application/octet-stream"});if(up)return alert(up.message)}const {error}=await supabase.from("reports").insert({job_id:el("reportJob").value||null,property_id:p.id,customer_id:p.customer_id,report_type:el("reportType").value,summary:el("reportSummary").value.trim(),file_url:null,storage_path:path});if(error)return alert(error.message);e.target.reset();await load()});
+el("chargeForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("chargeProperty").value);if(!p)return;const amount=Math.round(Number(el("chargeAmount").value)*100);const {error}=await supabase.from("billing_records").insert({customer_id:p.customer_id,property_id:p.id,job_id:el("chargeJob").value||null,record_type:el("chargeType").value,amount_pence:amount,currency:"gbp",status:"pending",invoice_sync_status:"pending",description:el("chargeDesc").value.trim()});if(error)return alert(error.message);e.target.reset();await load()});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["overview","jobs","customers","reports","billing","leads"].forEach(t=>el(t+"Tab").classList.toggle("hidden",t!==b.dataset.tab))});
+
+async function sessionChanged(session){
+  const logged=Boolean(session?.user);
+  if(!logged){el("loginView").classList.remove("hidden");el("adminView").classList.add("hidden");el("logoutBtn").classList.add("hidden");return}
+  try{if(!(await verifyAdmin())){await supabase.auth.signOut();msg("This account is not authorised for the owner dashboard.");return}el("loginView").classList.add("hidden");el("adminView").classList.remove("hidden");el("logoutBtn").classList.remove("hidden");await load()}catch(err){console.error(err);msg(err.message||"Admin check failed")}
+}
+const ses=await supabase.auth.getSession();await sessionChanged(ses.data.session);supabase.auth.onAuthStateChange(async(_e,session)=>sessionChanged(session));
+</script>
+</body>
+</html>
