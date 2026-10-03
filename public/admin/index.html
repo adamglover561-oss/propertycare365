@@ -49,6 +49,7 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <button data-tab="reports">Reports</button>
 <button data-tab="billing">Billing</button>
 <button data-tab="leads">B2B leads</button>
+<button data-tab="deletions">Account deletion</button>
 </div>
 
 <section id="overviewTab">
@@ -115,6 +116,10 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <section id="leadsTab" class="hidden">
 <div class="card"><div class="row"><div><h3 class="section-title">B2B launch leads</h3><div class="muted small">Verified limited-company property managers. Use corporate contact routes and honour any opt-out.</div></div></div><div id="leadsList" style="margin-top:12px"></div></div>
 </section>
+
+<section id="deletionsTab" class="hidden">
+<div class="card"><h3 class="section-title">Account deletion requests</h3><div class="notice">Process requests within 30 days. Review active Stripe memberships, outstanding charges and any records that must be retained for tax, safety or legal reasons before marking a request completed.</div><div id="deletionList" style="margin-top:12px"></div></div>
+</section>
 </main>
 </div>
 
@@ -124,7 +129,7 @@ const URL="https://zwehrboymqtmzrqucyyc.supabase.co";
 const KEY="sb_publishable_L6cuXJdswjOHnXA0Sl9_2g_K3iTrL31";
 const supabase=createClient(URL,KEY);
 const el=id=>document.getElementById(id);
-let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[]};
+let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[],deletions:[]};
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const date=v=>v?new Date(v).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
@@ -169,10 +174,11 @@ async function load(){
     supabase.from("reports").select("*").order("created_at",{ascending:false}),
     supabase.from("billing_records").select("*").order("created_at",{ascending:false}),
     supabase.from("plans").select("*"),
-    supabase.from("leads").select("*").order("created_at",{ascending:true})
+    supabase.from("leads").select("*").order("created_at",{ascending:true}),
+    supabase.from("account_deletion_requests").select("*").order("requested_at",{ascending:false})
   ]);
   for(const q of qs)if(q.error)throw q.error;
-  [s.customers,s.properties,s.subscriptions,s.covers,s.jobs,s.reports,s.billing,s.plans,s.leads]=qs.map(q=>q.data||[]);
+  [s.customers,s.properties,s.subscriptions,s.covers,s.jobs,s.reports,s.billing,s.plans,s.leads,s.deletions]=qs.map(q=>q.data||[]);
   render();
 }
 function options(){
@@ -198,6 +204,7 @@ function render(){
   el("customersList").innerHTML=s.customers.map(c=>{const ps=s.properties.filter(p=>p.customer_id===c.id);return '<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+" · "+esc(c.phone||"No phone")+'</div><div style="margin-top:9px">'+ps.map(p=>'<div class="row" style="padding:7px 0;border-top:1px solid #263a57"><div><strong>'+esc(p.property_name||p.address_line1)+'</strong><div class="muted small">'+esc(p.address_line1+", "+p.town_city+", "+p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+"</div></div>"+(coverFor(p.id)?tag(coverFor(p.id).sub.status):'<span class="tag warn">not covered</span>')+"</div>").join("")+"</div></div>"}).join("")||'<div class="empty">No customers yet.</div>';
   el("reportsList").innerHTML=s.reports.length?s.reports.map(r=>{const p=property(r.property_id),c=customer(r.customer_id);return '<div class="item"><div class="row"><div><h4>'+esc(r.report_type)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+'</div><div class="small" style="margin-top:5px">'+esc(r.summary||"")+"</div></div><div class='muted small'>"+date(r.created_at)+"</div></div>"+(r.storage_path?'<div style="margin-top:8px"><button class="btn secondary openReport" data-path="'+esc(r.storage_path)+'">Open file</button></div>':"")+"</div>"}).join(""):'<div class="empty">No reports yet.</div>';
   el("billingList").innerHTML=s.billing.length?s.billing.map(b=>{const p=property(b.property_id),c=customer(b.customer_id);const inv=b.invoice_sync_status||"not_required";return '<div class="item"><div class="row mobile"><div><h4>'+esc(b.description||"Charge")+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+' · '+money(b.amount_pence)+'</div><div class="small" style="margin-top:5px">Invoice: '+esc(inv.replaceAll("_"," "))+(b.hosted_invoice_url?' · <a href="'+esc(b.hosted_invoice_url)+'" target="_blank">Open Stripe invoice</a>':'')+'</div></div>'+tag(b.status)+'</div><div class="actions" style="margin-top:8px">'+(b.status!=="paid"?'<button class="btn goodbtn markPaid" data-id="'+b.id+'">Mark paid</button>':"")+"</div></div>"}).join(""):'<div class="empty">No billing records yet.</div>';
+  el("deletionList").innerHTML=s.deletions.length?s.deletions.map(d=>{const cust=d.customer_id?customer(d.customer_id):null;return '<div class="item"><div class="row mobile"><div><h4>'+esc(cust?.full_name||d.email||"Customer")+'</h4><div class="muted small">'+esc(d.email||cust?.email||"")+' · Requested '+date(d.requested_at)+'</div><div class="small" style="margin-top:5px">Status: '+esc(d.status)+'</div></div><div class="field" style="min-width:170px"><label>Request status</label><select class="deletionStatus" data-id="'+esc(d.id)+'"><option value="pending">Pending</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div></div>'}).join(""):'<div class="empty">No account deletion requests.</div>';
   el("leadsList").innerHTML=s.leads.length?s.leads.map(l=>{
     const contact=l.contact_email?'<a href="mailto:'+esc(l.contact_email)+'">'+esc(l.contact_email)+'</a>':(l.contact_url?'<a href="'+esc(l.contact_url)+'" target="_blank">Open contact page</a>':'No contact route');
     return '<div class="item"><div class="row mobile"><div><h4>'+esc(l.company_name)+'</h4><div class="muted small">'+esc(l.area||"")+' · Company '+esc(l.company_number||"")+'</div><div class="small" style="margin-top:5px">'+contact+'</div><div class="muted small" style="margin-top:5px">'+esc(l.notes||"")+'</div></div><div class="field" style="min-width:170px"><label>Outreach status</label><select class="leadStatus" data-id="'+esc(l.id)+'"><option value="not_contacted">Not contacted</option><option value="contacted">Contacted</option><option value="replied">Replied</option><option value="meeting">Meeting</option><option value="won">Won</option><option value="not_interested">Not interested</option><option value="do_not_contact">Do not contact</option></select></div></div></div>';
@@ -210,6 +217,7 @@ function bind(){
   document.querySelectorAll(".completeJob").forEach(b=>b.onclick=()=>saveJob(b.dataset.id,true));
   document.querySelectorAll(".markPaid").forEach(b=>b.onclick=async()=>{const {error}=await supabase.from("billing_records").update({status:"paid",updated_at:new Date().toISOString()}).eq("id",b.dataset.id);if(error)return alert(error.message);await load()});
   document.querySelectorAll(".openReport").forEach(b=>b.onclick=async()=>{const {data,error}=await supabase.storage.from("home-care-reports").createSignedUrl(b.dataset.path,3600);if(error)return alert(error.message);window.open(data.signedUrl,"_blank")});
+  document.querySelectorAll(".deletionStatus").forEach(x=>{const req=s.deletions.find(v=>v.id===x.dataset.id);if(req)x.value=req.status;x.onchange=async()=>{const patch={status:x.value,processed_at:x.value==="completed"||x.value==="rejected"?new Date().toISOString():null};const {error}=await supabase.from("account_deletion_requests").update(patch).eq("id",x.dataset.id);if(error)alert(error.message);else await load();};});
   document.querySelectorAll(".leadStatus").forEach(x=>{
     const lead=s.leads.find(v=>v.id===x.dataset.id); if(lead)x.value=lead.status;
     x.onchange=async()=>{const patch={status:x.value};if(x.value==="contacted")patch.last_contacted_at=new Date().toISOString();const {error}=await supabase.from("leads").update(patch).eq("id",x.dataset.id);if(error)alert(error.message);};
@@ -224,7 +232,7 @@ async function saveJob(id,complete){
 el("newJobForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("newJobProperty").value);if(!p)return alert("Choose a property");const dt=el("newJobDate").value?new Date(el("newJobDate").value).toISOString():null;const {error}=await supabase.from("jobs").insert({property_id:p.id,customer_id:p.customer_id,job_type:el("newJobType").value,title:el("newJobTitle").value.trim(),description:el("newJobDesc").value.trim()||null,status:dt?"scheduled":"requested",scheduled_for:dt,duration_minutes:90,calendar_sync_status:dt?"pending":"not_required",booking_source:"admin",labour_covered:Boolean(coverFor(p.id))});if(error)return alert(error.message);e.target.reset();await load()});
 el("reportForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("reportProperty").value);if(!p)return;let path=null;const f=el("reportFile").files[0];if(f){path=p.customer_id+"/"+p.id+"/"+crypto.randomUUID()+"-"+f.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error:up}=await supabase.storage.from("home-care-reports").upload(path,f,{upsert:false,contentType:f.type||"application/octet-stream"});if(up)return alert(up.message)}const {error}=await supabase.from("reports").insert({job_id:el("reportJob").value||null,property_id:p.id,customer_id:p.customer_id,report_type:el("reportType").value,summary:el("reportSummary").value.trim(),file_url:null,storage_path:path});if(error)return alert(error.message);e.target.reset();await load()});
 el("chargeForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("chargeProperty").value);if(!p)return;const amount=Math.round(Number(el("chargeAmount").value)*100);const {error}=await supabase.from("billing_records").insert({customer_id:p.customer_id,property_id:p.id,job_id:el("chargeJob").value||null,record_type:el("chargeType").value,amount_pence:amount,currency:"gbp",status:"pending",invoice_sync_status:"pending",description:el("chargeDesc").value.trim()});if(error)return alert(error.message);e.target.reset();await load()});
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["overview","jobs","customers","reports","billing","leads"].forEach(t=>el(t+"Tab").classList.toggle("hidden",t!==b.dataset.tab))});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["overview","jobs","customers","reports","billing","leads","deletions"].forEach(t=>el(t+"Tab").classList.toggle("hidden",t!==b.dataset.tab))});
 
 async function sessionChanged(session){
   const logged=Boolean(session?.user);
