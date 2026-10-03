@@ -1,0 +1,23 @@
+{
+  "name": "Property Care 365",
+  "short_name": "PC365",
+  "description": "Property Care 365 customer portal for plumbing and heating membership, bookings, reports and billing.",
+  "start_url": "/app/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#08111f",
+  "theme_color": "#08111f",
+  "categories": [
+    "business",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
