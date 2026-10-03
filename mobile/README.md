@@ -26,11 +26,11 @@ Only run `cap add` once for each platform. Open using `npx cap open android` or 
 
 - Enrol the owner in Apple Developer and Google Play Console; verify account identity and business information. Confirm the bundle ID before registering it.
 - Supply a public geographic business address for the terms; the website currently contains a launch placeholder.
-- Implement and test an in-app account deletion flow and a public deletion request page. Decide which financial records must be retained and how active memberships are cancelled. This is a release blocker; deletion is not implemented in this scaffold.
+- Account deletion is implemented in-app and at https://propertycare365.co.uk/delete-account/. Before production submission, test the full request path with a dedicated review/test account and confirm the operating process for active memberships, outstanding charges and legally retained records.
 - Verify email confirmation redirect allowlists in Supabase; test signup, logout, login, separate-customer access and password recovery on real phones.
 - Complete checkout and renewal testing using an isolated Stripe test environment. Never use the live payment links for automated charge tests.
 - Test cancellation, rescheduling, reminders with denied permission, background app resume, report opening, loss of connectivity, multiple properties and accessibility on Android and iPhone.
-- Replace default launch screens; verify branded adaptive icons on phones. Capture real device screenshots and finish age/content rating, App Privacy and Google Data Safety disclosures. Data includes contact details, property addresses, account identifiers, bookings, reports and billing metadata. Stripe handles card data.
+- Verify branded adaptive icons and launch presentation on real phones. Capture real device screenshots and finish age/content rating, App Privacy and Google Data Safety disclosures. Draft disclosure notes are in mobile/store/DATA_DISCLOSURES.md. Data includes contact details, property addresses, account identifiers, bookings, reports and billing metadata. Stripe handles card data.
 - Provide a working review account with non-personal demonstration properties and reports; no real credentials are committed here.
 - Create signed Android AAB and iOS archive under the owner’s developer accounts; submit to internal testing/TestFlight before review. Newly created personal Google Play accounts may require a closed test with 12 testers for 14 consecutive days before production access.
 
@@ -38,6 +38,9 @@ Store description draft: Manage your Property Care 365 membership from your phon
 
 Support: adamglover561@gmail.com. Privacy: https://propertycare365.co.uk/privacy/. Terms: https://propertycare365.co.uk/terms/. App-store approval is not guaranteed; Apple assesses utility beyond a repackaged website.
 
-Validation completed in the development environment: frontend bundle build, native Android/iOS generation and synchronization, two reminder tests. No Android SDK or Xcode is available here, so native compilation, signing and device testing are not yet verified.
+Source-level validation is automated in .github/workflows/mobile-ci.yml for Android and iOS. Signing, store upload and real-device testing still require the owner's Apple Developer and Google Play Console accounts.
 
 Official references: https://capacitorjs.com/docs/getting-started/environment-setup ; https://developer.apple.com/app-store/review/guidelines/ ; https://support.google.com/googleplay/android-developer/answer/14151465
+
+
+Store-release drafts are in `mobile/store/`: listing metadata, privacy/data-safety notes and a release checklist.
