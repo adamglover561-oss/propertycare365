@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="110" fill="#08111f"/>
-<rect x="59" y="59" width="394" height="394" rx="105" fill="#47b9ff"/>
-<path d="M137 247 256 150l119 97v113c0 16-13 29-29 29H166c-16 0-29-13-29-29V247Z" fill="#08111f"/>
-<path d="M183 338v-75h146v75" fill="none" stroke="#47b9ff" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="256" y="307" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="84" font-weight="900" fill="#f7f9fc">365</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#08111f"/><path d="M400 128a190 190 0 1 0 43 181" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round"/><path d="m356 129 49 3 6-49" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><path d="m148 238 108-88 108 88v120H148Z" fill="none" stroke="#f7f9fc" stroke-width="18" stroke-linejoin="round"/><text x="256" y="319" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" fill="#f7f9fc">360</text></svg>

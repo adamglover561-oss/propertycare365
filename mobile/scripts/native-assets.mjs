@@ -3,16 +3,10 @@ import sharp from 'sharp';
 
 const exists=async path=>{try{await access(path);return true;}catch{return false;}};
 
-const icon=Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-<rect width="1024" height="1024" rx="220" fill="#08111f"/>
-<rect x="118" y="118" width="788" height="788" rx="210" fill="#47b9ff"/>
-<path d="M274 493 512 300l238 193v226c0 32-26 58-58 58H332c-32 0-58-26-58-58V493Z" fill="#08111f"/>
-<path d="M366 676V526h292v150" fill="none" stroke="#47b9ff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="512" y="615" text-anchor="middle" font-family="Arial,sans-serif" font-size="168" font-weight="900" fill="#f7f9fc">365</text>
-</svg>`);
+const icon=await readFile('../public/icon.svg');
 
 await mkdir('assets',{recursive:true});
-await sharp(icon).flatten({background:'#08111f'}).png().toFile('assets/store-icon.png');
+await sharp(icon).resize(1024,1024).flatten({background:'#08111f'}).png().toFile('assets/store-icon.png');
 
 if(await exists('ios/App/App/Assets.xcassets/AppIcon.appiconset')){
   await sharp(icon).resize(1024,1024).flatten({background:'#08111f'}).png().toFile('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
