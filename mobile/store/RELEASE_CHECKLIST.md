@@ -19,8 +19,8 @@
 - [x] Store metadata and privacy/data-safety draft prepared
 
 ## Requires owner developer-account access
-- [ ] Apple Developer Program enrolment and identity verification
-- [ ] Google Play Console account and identity verification
+- [ ] Apple Developer Program: enrol as an individual / sole proprietor and complete identity verification. Apple does not require a D-U-N-S number for this route; the seller name will be the owner's legal personal name.
+- [ ] Google Play Console: complete the organisation/business developer account and identity verification. A D-U-N-S number is required for this route.
 - [ ] Register uk.co.propertycare365.app with Apple
 - [ ] Configure Android Play App Signing / secure upload key
 - [ ] Create signed Android AAB
@@ -35,5 +35,9 @@
 - [ ] Complete any Google closed-testing requirement that applies to the developer account
 - [ ] Submit both stores for review
 
+## Production account / security items
+- [ ] Set Monzo as the default GBP payout account in Stripe through Stripe's secure bank-account flow; keep the existing payout account until Monzo is confirmed active.
+- [ ] Enable Supabase leaked-password protection in Auth password-security settings. This is a dashboard setting and is currently the only security advisor warning.
+
 ## Business/legal launch item
-- [ ] Replace the geographic-address placeholder in the public membership terms with the confirmed business trading/correspondence address before launch.
+- [ ] Replace the geographic-address placeholder in the public membership terms with a confirmed business trading/correspondence address that the owner is comfortable publishing before launch.
