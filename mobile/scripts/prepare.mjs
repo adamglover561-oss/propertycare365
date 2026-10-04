@@ -2,8 +2,8 @@ import { readFile,writeFile } from 'node:fs/promises';
 let html=await readFile('../public/app/index.html','utf8');
 html=html.replace('https://esm.sh/@supabase/supabase-js@2.57.4','@supabase/supabase-js')
 .replace(/<link rel="manifest"[^>]*>/,'').replace(/<link rel="icon"[^>]*>/,'')
-.replace('location.origin+"/app/"','"https://propertycare365.co.uk/app/"')
-.replace('if(url)window.open(url,"_blank","noopener");','if(url)await openExternal(url);')
+.replace('location.origin+"/app/"','"https://propertycare360.co.uk/app/"')
+.replace('if(url)window.location.assign(url);','if(url)await openExternal(url);')
 .replace('window.location.assign(data.signedUrl);','await openExternal(data.signedUrl);')
 .replace('render();}','render();void syncReminders().catch(console.error);}')
 .replace('const logged=Boolean(state.user);','const logged=Boolean(state.user);if(!logged)void syncReminders().catch(console.error);')

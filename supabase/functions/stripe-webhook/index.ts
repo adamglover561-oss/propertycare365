@@ -167,7 +167,7 @@ async function processCheckoutCompleted(session: Record<string, any>) {
     amount_pence: amount,
     currency: session.currency || "gbp",
     status: subscriptionStatus === "active" ? "paid" : "pending",
-    description: "Property Care 365 subscription signup"
+    description: "Property Care 360 subscription signup"
   };
   const invoiceId = getId(session.invoice);
   const filter = "stripe_checkout_session_id.eq."+session.id + (invoiceId ? ",stripe_invoice_id.eq."+invoiceId : "");
@@ -255,7 +255,7 @@ async function processInvoice(invoice: Record<string, any>, paid: boolean) {
     currency: invoice.currency || "gbp",
     status: paid ? "paid" : "failed",
     invoice_sync_status: "sent",
-    description: paid ? "Property Care 365 subscription payment" : "Property Care 365 subscription payment failed",
+    description: paid ? "Property Care 360 subscription payment" : "Property Care 360 subscription payment failed",
     hosted_invoice_url: invoice.hosted_invoice_url || null
   });
   if (billError && billError.code !== "23505") throw billError;

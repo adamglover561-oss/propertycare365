@@ -1,7 +1,7 @@
 {
-  "name": "Property Care 365",
+  "name": "Property Care 360",
   "short_name": "PC365",
-  "description": "Property Care 365 customer portal for plumbing and heating membership, bookings, reports and billing.",
+  "description": "Property Care 360 customer portal for plumbing and heating membership, bookings, reports and billing.",
   "start_url": "/app/",
   "scope": "/",
   "display": "standalone",
