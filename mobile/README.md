@@ -1,4 +1,4 @@
-# Property Care 365 mobile
+# Property Care 360 mobile
 
 Android and iPhone customer app source for Adam Glover Plumbing & Heating. App identifier: `uk.co.propertycare365.app`. This project targets both the Apple App Store and Google Play; native signing and store submission still require the owner's developer accounts.
 
@@ -26,7 +26,7 @@ Only run `cap add` once for each platform. Open using `npx cap open android` or 
 
 - Enrol the owner in Apple Developer and Google Play Console; verify account identity and business information. Confirm the bundle ID before registering it.
 - Supply a public geographic business address for the terms; the website currently contains a launch placeholder.
-- Account deletion is implemented in-app and at https://propertycare365.co.uk/delete-account/. Before production submission, test the full request path with a dedicated review/test account and confirm the operating process for active memberships, outstanding charges and legally retained records.
+- Account deletion is implemented in-app and at https://propertycare360.co.uk/delete-account/. Before production submission, test the full request path with a dedicated review/test account and confirm the operating process for active memberships, outstanding charges and legally retained records.
 - Verify email confirmation redirect allowlists in Supabase; test signup, logout, login, separate-customer access and password recovery on real phones.
 - Complete checkout and renewal testing using an isolated Stripe test environment. Never use the live payment links for automated charge tests.
 - Test cancellation, rescheduling, reminders with denied permission, background app resume, report opening, loss of connectivity, multiple properties and accessibility on Android and iPhone.
@@ -34,9 +34,9 @@ Only run `cap add` once for each platform. Open using `npx cap open android` or 
 - Provide a working review account with non-personal demonstration properties and reports; no real credentials are committed here.
 - Create signed Android AAB and iOS archive under the owner’s developer accounts; submit to internal testing/TestFlight before review. Newly created personal Google Play accounts may require a closed test with 12 testers for 14 consecutive days before production access.
 
-Store description draft: Manage your Property Care 365 membership from your phone. Keep your properties together, request plumbing and heating visits, book maintenance, and view your reports and billing. Optional reminders help you remember confirmed appointments. Gas and LPG properties are supported. The app is free to download; service memberships and chargeable materials are paid separately. Membership is a service agreement, not insurance.
+Store description draft: Manage your Property Care 360 membership from your phone. Keep your properties together, request plumbing and heating visits, book maintenance, and view your reports and billing. Optional reminders help you remember confirmed appointments. Gas and LPG properties are supported. The app is free to download; service memberships and chargeable materials are paid separately. Membership is a service agreement, not insurance.
 
-Support: adamglover561@gmail.com. Privacy: https://propertycare365.co.uk/privacy/. Terms: https://propertycare365.co.uk/terms/. App-store approval is not guaranteed; Apple assesses utility beyond a repackaged website.
+Support: adamglover561@gmail.com. Privacy: https://propertycare360.co.uk/privacy/. Terms: https://propertycare360.co.uk/terms/. App-store approval is not guaranteed; Apple assesses utility beyond a repackaged website.
 
 Source-level validation is automated in .github/workflows/mobile-ci.yml for Android and iOS. Signing, store upload and real-device testing still require the owner's Apple Developer and Google Play Console accounts.
 

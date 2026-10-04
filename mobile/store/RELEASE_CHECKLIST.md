@@ -1,7 +1,7 @@
 # Store Release Checklist
 
 ## Completed in source
-- [x] Property Care 365 branding
+- [x] Property Care 360 branding
 - [x] Bundle/package ID set to uk.co.propertycare365.app
 - [x] iPhone and Android Capacitor project configuration
 - [x] Responsive customer portal bundled into native app
