@@ -77,3 +77,10 @@ test('signature verification accepts valid HMAC and rejects tampering and expiry
   assert.equal(await c.verifyStripeSignature(body+'x','t='+ts+',v1='+sig,'test-secret'),false);
   assert.equal(await c.verifyStripeSignature(body,'t='+(ts-600)+',v1='+sig,'test-secret'),false);
 });
+test('checkout preserves an existing plumbing inspection due date',async()=>{
+  const {context:c,tables:t}=setup();
+  t.properties[0].next_plumbing_check_due='2026-12-15';
+  await c.processCheckoutCompleted({id:'cs_due',client_reference_id:'hc_customer__prop',customer:'cus_new',subscription:'sub_due',invoice:'in_due',payment_status:'paid',amount_total:4900});
+  assert.equal(t.properties[0].next_plumbing_check_due,'2026-12-15');
+  assert.ok(t.properties[0].next_boiler_service_due);
+});

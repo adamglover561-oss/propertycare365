@@ -140,7 +140,6 @@ async function processCheckoutCompleted(session: Record<string, any>) {
     .from("properties")
     .update({
       next_boiler_service_due: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0,10),
-      next_plumbing_check_due: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0,10),
       updated_at: new Date().toISOString()
     })
     .eq("id", propertyId)
