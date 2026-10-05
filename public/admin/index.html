@@ -136,15 +136,35 @@ const el=id=>document.getElementById(id);
 
 let deferredInstallPrompt=null;
 const installBtn=el("installBtn");
+const isSamsungInternet=/SamsungBrowser/i.test(navigator.userAgent);
+const openAdminInChrome=()=>{
+  const fallback=encodeURIComponent("https://propertycare360.co.uk/admin/");
+  window.location.href="intent://propertycare360.co.uk/admin/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url="+fallback+";end";
+};
+if(isSamsungInternet){
+  installBtn.textContent="Install safely in Chrome";
+  installBtn.classList.remove("hidden");
+}
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("/admin/sw.js",{scope:"/admin/"}).catch(err=>console.error("Admin service worker:",err)));
 }
 window.addEventListener("beforeinstallprompt",event=>{
   event.preventDefault();
+  if(isSamsungInternet){
+    deferredInstallPrompt=null;
+    installBtn.textContent="Install safely in Chrome";
+    installBtn.classList.remove("hidden");
+    return;
+  }
   deferredInstallPrompt=event;
+  installBtn.textContent="Install app";
   installBtn.classList.remove("hidden");
 });
 installBtn.addEventListener("click",async()=>{
+  if(isSamsungInternet){
+    openAdminInChrome();
+    return;
+  }
   if(!deferredInstallPrompt)return;
   deferredInstallPrompt.prompt();
   await deferredInstallPrompt.userChoice;
