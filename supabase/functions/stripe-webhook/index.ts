@@ -116,10 +116,16 @@ async function processCheckoutCompleted(session: Record<string, any>) {
     .from("plans")
     .select("id, monthly_price_pence")
     .eq("code", (() => {
-      const code = String(session.metadata?.plan_code || "home_care_first_property");
+      const amount = typeof session.amount_total === "number" ? session.amount_total : null;
+      const inferred = amount === 4400
+        ? "home_care_additional_2_4"
+        : amount === 3900
+          ? "home_care_additional_5_plus"
+          : "home_care_first_property";
+      const code = String(session.metadata?.plan_code || inferred);
       return ["home_care_first_property","home_care_additional_2_4","home_care_additional_5_plus"].includes(code)
         ? code
-        : "home_care_first_property";
+        : inferred;
     })())
     .single();
   if (planError) throw planError;
