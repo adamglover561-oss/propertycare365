@@ -2,7 +2,7 @@
 
 ## Completed in source
 - [x] Property Care 360 branding
-- [x] Bundle/package ID set to uk.co.propertycare365.app
+- [x] Bundle/package ID set to uk.co.propertycare360.app
 - [x] iPhone and Android Capacitor project configuration
 - [x] Responsive customer portal bundled into native app
 - [x] Supabase authentication and RLS-backed customer data
@@ -19,9 +19,9 @@
 - [x] Store metadata and privacy/data-safety draft prepared
 
 ## Requires owner developer-account access
-- [ ] Apple Developer Program: enrol as an individual / sole proprietor and complete identity verification. Apple does not require a D-U-N-S number for this route; the seller name will be the owner's legal personal name.
-- [ ] Google Play Console: complete the organisation/business developer account and identity verification. A D-U-N-S number is required for this route.
-- [ ] Register uk.co.propertycare365.app with Apple
+- [ ] Apple Developer Program: enrol as an individual / sole proprietor and complete identity verification. Apple states that a sole proprietor/single-person business can enrol as an individual; the seller name will be the owner's legal personal name.
+- [ ] Google Play Console: complete the organisation/business developer account and identity verification. Google requires a D-U-N-S number for organisation/business accounts.
+- [ ] Register uk.co.propertycare360.app with Apple
 - [ ] Configure Android Play App Signing / secure upload key
 - [ ] Create signed Android AAB
 - [ ] Create signed iOS archive / TestFlight build
