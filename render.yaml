@@ -16,3 +16,4 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+# admin login fix deploy
