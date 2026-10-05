@@ -17,11 +17,15 @@
 - [x] Terms URL
 - [x] Android/iOS compile validation workflow added to GitHub Actions
 - [x] Store metadata and privacy/data-safety draft prepared
+- [x] Apple Developer Program membership activated
+- [x] App Store Connect access activated
+- [x] iOS release workflows simplified to App Store Connect API-key automatic signing
 
 ## Requires owner developer-account access
-- [ ] Apple Developer Program: enrol as an individual / sole proprietor and complete identity verification. Apple states that a sole proprietor/single-person business can enrol as an individual; the seller name will be the owner's legal personal name.
+- [ ] In App Store Connect, request App Store Connect API access if Apple has not already enabled it, then generate a Team API key with sufficient signing/provisioning permissions.
+- [ ] Add APPLE_TEAM_ID, APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID and APP_STORE_CONNECT_PRIVATE_KEY_BASE64 as GitHub Actions secrets.
+- [ ] Let the automatic-signing workflow register/use uk.co.propertycare360.app and create the required signing assets, or register the App ID manually if Apple requires it.
 - [ ] Google Play Console: complete the organisation/business developer account and identity verification. Google requires a D-U-N-S number for organisation/business accounts.
-- [ ] Register uk.co.propertycare360.app with Apple
 - [ ] Configure Android Play App Signing / secure upload key
 - [ ] Create signed Android AAB
 - [ ] Create signed iOS archive / TestFlight build
