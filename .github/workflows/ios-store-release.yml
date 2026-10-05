@@ -16,19 +16,16 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - name: Check signing secrets
+      - name: Check Apple signing secrets
         env:
-          CERT_B64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
         run: |
-          test -n "$CERT_B64" || (echo "Missing IOS_CERTIFICATE_P12_BASE64" && exit 1)
-          test -n "$CERT_PASSWORD" || (echo "Missing IOS_CERTIFICATE_PASSWORD" && exit 1)
-          test -n "$PROFILE_B64" || (echo "Missing IOS_PROVISIONING_PROFILE_BASE64" && exit 1)
-          test -n "$PROFILE_NAME" || (echo "Missing IOS_PROVISIONING_PROFILE_NAME" && exit 1)
-          test -n "$TEAM_ID" || (echo "Missing APPLE_TEAM_ID" && exit 1)
+          for name in TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_B64; do
+            test -n "${!name}" || (echo "Missing required Apple secret: $name" && exit 1)
+          done
       - name: Install dependencies
         run: npm ci
       - name: Unit tests
@@ -41,28 +38,21 @@ jobs:
         run: node scripts/native-assets.mjs
       - name: Sync iOS
         run: npx cap sync ios
-      - name: Install signing certificate and profile
+      - name: Install App Store Connect API key
         env:
-          CERT_B64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
         run: |
-          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
-          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -lut 21600 build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          printf '%s' "$CERT_B64" | base64 --decode > certificate.p12
-          security import certificate.p12 -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security list-keychains -d user -s build.keychain login.keychain
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          printf '%s' "$PROFILE_B64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/property-care-360.mobileprovision"
-          rm -f certificate.p12
-      - name: Archive Property Care 360
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+      - name: Archive Property Care 360 with automatic signing
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
@@ -70,16 +60,21 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/PropertyCare360.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_STYLE=Automatic \
             PRODUCT_BUNDLE_IDENTIFIER="uk.co.propertycare360.app" \
             archive
       - name: Export signed IPA
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          mkdir -p build
           cat > build/ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -87,11 +82,7 @@ jobs:
           <dict>
             <key>method</key><string>app-store-connect</string>
             <key>teamID</key><string>$TEAM_ID</string>
-            <key>signingStyle</key><string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>uk.co.propertycare360.app</key><string>$PROFILE_NAME</string>
-            </dict>
+            <key>signingStyle</key><string>automatic</string>
             <key>uploadSymbols</key><true/>
           </dict>
           </plist>
@@ -99,7 +90,11 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath build/PropertyCare360.xcarchive \
             -exportPath build/export \
-            -exportOptionsPlist build/ExportOptions.plist
+            -exportOptionsPlist build/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
       - name: Upload signed iPhone IPA
         uses: actions/upload-artifact@v4
         with:
