@@ -76,6 +76,13 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
 const el=id=>document.getElementById(id);
 let state={user:null,customer:null,properties:[],subscriptions:[],covers:[],plans:[],jobs:[],reports:[],billing:[]};
 
+async function notifyOwner(event,id){
+  try{
+    const {error}=await supabase.functions.invoke("owner-push",{body:{action:"customer-event",event,id}});
+    if(error) console.error("Owner push:",error);
+  }catch(error){ console.error("Owner push:",error); }
+}
+
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function fmtMoney(p){return new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format((p||0)/100);}
 function fmtDate(v){return v?new Date(v).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"—";}
@@ -89,7 +96,7 @@ el("signInForm").addEventListener("submit",async e=>{e.preventDefault();hideMess
 el("signUpForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();const name=el("signupName").value.trim(),phone=el("signupPhone").value.trim();const {data,error}=await supabase.auth.signUp({email:el("signupEmail").value.trim(),password:el("signupPassword").value,options:{emailRedirectTo:location.origin+"/app/",data:{full_name:name,phone}}});if(error){showMessage(error.message);return;}if(!data.session){setAuthMode("signin");showMessage("Account created. Check your email to confirm it, then return here and sign in.");}});
 el("logoutBtn").onclick=()=>supabase.auth.signOut();
 
-async function ensureCustomer(user){const {data:existing,error}=await supabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();if(error)throw error;if(existing)return existing;const fullName=user.user_metadata?.full_name||user.email?.split("@")[0]||"Customer",phone=user.user_metadata?.phone||null;const {data,error:insertError}=await supabase.from("customers").insert({user_id:user.id,full_name:fullName,email:user.email,phone}).select().single();if(insertError){if(insertError.code!=="23505")throw insertError;const retry=await supabase.from("customers").select("*").eq("user_id",user.id).single();if(retry.error)throw retry.error;return retry.data;}return data;}
+async function ensureCustomer(user){const {data:existing,error}=await supabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();if(error)throw error;if(existing)return existing;const fullName=user.user_metadata?.full_name||user.email?.split("@")[0]||"Customer",phone=user.user_metadata?.phone||null;const {data,error:insertError}=await supabase.from("customers").insert({user_id:user.id,full_name:fullName,email:user.email,phone}).select().single();if(insertError){if(insertError.code!=="23505")throw insertError;const retry=await supabase.from("customers").select("*").eq("user_id",user.id).single();if(retry.error)throw retry.error;return retry.data;}void notifyOwner("customer_signup",data.id);return data;}
 async function loadData(){state.customer=await ensureCustomer(state.user);const cid=state.customer.id;const [p,s,c,plans,j,r,b]=await Promise.all([supabase.from("properties").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("subscriptions").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("property_cover").select("*").order("created_at",{ascending:false}),supabase.from("plans").select("*").eq("active",true),supabase.from("jobs").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("reports").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("billing_records").select("*").eq("customer_id",cid).order("created_at",{ascending:false})]);for(const q of [p,s,c,plans,j,r,b])if(q.error)throw q.error;state.properties=p.data||[];state.subscriptions=s.data||[];state.covers=c.data||[];state.plans=plans.data||[];state.jobs=j.data||[];state.reports=r.data||[];state.billing=b.data||[];render();}
 function coverFor(pid){for(const cover of state.covers.filter(x=>x.property_id===pid&&x.active)){const sub=state.subscriptions.find(s=>s.id===cover.subscription_id);if(sub&&["active","trialing","past_due"].includes(sub.status))return {cover,sub};}return null;}
 function coveredCount(){return state.properties.filter(p=>coverFor(p.id)).length;}
@@ -158,8 +165,8 @@ el("reportList").addEventListener("click",async event=>{
 });
 window.addEventListener("focus",()=>{if(state.user)void loadData().catch(console.error);});
 
-el("propertyForm").addEventListener("submit",async e=>{e.preventDefault();const {error}=await supabase.from("properties").insert({customer_id:state.customer.id,property_name:el("propertyName").value.trim()||null,address_line1:el("address1").value.trim(),town_city:el("town").value.trim(),postcode:el("postcode").value.trim().toUpperCase(),heating_fuel:el("propertyFuel").value,access_notes:el("accessNotes").value.trim()||null});if(error)return alert(error.message);e.target.reset();e.target.classList.add("hidden");await loadData();});
-el("breakdownForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.properties.length)return alert("Add a property first.");const pid=el("jobProperty").value,{error}=await supabase.from("jobs").insert({property_id:pid,customer_id:state.customer.id,job_type:"breakdown",title:"Breakdown request",description:el("jobDescription").value.trim(),status:"requested",labour_covered:Boolean(coverFor(pid)),booking_source:"customer"});if(error)return alert(error.message);e.target.reset();e.target.classList.add("hidden");alert("Breakdown request sent.");await loadData();});
+el("propertyForm").addEventListener("submit",async e=>{e.preventDefault();const {data,error}=await supabase.from("properties").insert({customer_id:state.customer.id,property_name:el("propertyName").value.trim()||null,address_line1:el("address1").value.trim(),town_city:el("town").value.trim(),postcode:el("postcode").value.trim().toUpperCase(),heating_fuel:el("propertyFuel").value,access_notes:el("accessNotes").value.trim()||null}).select("id").single();if(error)return alert(error.message);void notifyOwner("property_added",data.id);e.target.reset();e.target.classList.add("hidden");await loadData();});
+el("breakdownForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.properties.length)return alert("Add a property first.");const pid=el("jobProperty").value,{data,error}=await supabase.from("jobs").insert({property_id:pid,customer_id:state.customer.id,job_type:"breakdown",title:"Breakdown request",description:el("jobDescription").value.trim(),status:"requested",labour_covered:Boolean(coverFor(pid)),booking_source:"customer"}).select("id").single();if(error)return alert(error.message);void notifyOwner("breakdown_requested",data.id);e.target.reset();e.target.classList.add("hidden");alert("Breakdown request sent.");await loadData();});
 
 el("bookingForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -169,7 +176,7 @@ el("bookingForm").addEventListener("submit",async e=>{
   if(!start || start.getTime()<=Date.now()) return alert("Choose a future appointment time.");
   const type=el("bookingType").value;
   const titles={annual_service:"Annual boiler service",plumbing_check:"Yearly plumbing check",repair:"Repair visit",inspection:"Inspection"};
-  const {error}=await supabase.from("jobs").insert({
+  const {data,error}=await supabase.from("jobs").insert({
     property_id:pid,
     customer_id:state.customer.id,
     job_type:type,
@@ -181,8 +188,9 @@ el("bookingForm").addEventListener("submit",async e=>{
     calendar_sync_status:"pending",
     booking_source:"customer",
     labour_covered:Boolean(coverFor(pid))
-  });
+  }).select("id").single();
   if(error)return alert(error.message);
+  void notifyOwner("booking_requested",data.id);
   e.target.reset();
   alert("Appointment requested. Property Care 360 will check Adam's Google Calendar and confirm the slot.");
   await loadData();
@@ -199,6 +207,7 @@ el("requestDeletion").onclick=async()=>{
   try{
     const {data,error}=await supabase.functions.invoke("request-account-deletion",{body:{}});
     if(error)throw error;
+    if(data?.request?.id && !data?.already_requested) await notifyOwner("account_deletion_requested",data.request.id);
     alert(data?.message||"Account deletion requested.");
     await supabase.auth.signOut();
   }catch(error){alert("Could not request account deletion: "+error.message);}
