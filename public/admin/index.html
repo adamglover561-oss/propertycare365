@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#08111f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PC360 Admin">\n<link rel="manifest" href="/admin/manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="PC360 Admin">
+<link rel="manifest" href="/admin/manifest.webmanifest">
 <title>Property Care 360 Admin</title>
 <style>
 :root{--bg:#08111f;--panel:#101b2e;--panel2:#0b1728;--text:#f7f9fc;--muted:#9fb0c8;--line:#263a57;--brand:#45b7ff;--good:#32d583;--warn:#fdb022;--bad:#f97066}
@@ -21,7 +22,7 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <link rel="icon" href="/icon.svg?v=360" type="image/svg+xml"></head>
 <body>
 <div class="wrap">
-<div class="top"><div class="brand"><svg class="brand-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M400 128a190 190 0 1 0 43 181" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round"/><path d="m356 129 49 3 6-49" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><path d="m148 238 108-88 108 88v120H148Z" fill="none" stroke="#f7f9fc" stroke-width="18" stroke-linejoin="round"/><text x="256" y="319" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" fill="#f7f9fc">360</text></svg><div><h1>Property Care 360 Admin</h1><small>Adam Glover Plumbing & Heating</small></div></div><div class="actions"><button id="installBtn" class="btn primary hidden" type="button">Install app</button><button id="logoutBtn" class="btn secondary hidden">Log out</button></div></div>
+<div class="top"><div class="brand"><svg class="brand-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M400 128a190 190 0 1 0 43 181" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round"/><path d="m356 129 49 3 6-49" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><path d="m148 238 108-88 108 88v120H148Z" fill="none" stroke="#f7f9fc" stroke-width="18" stroke-linejoin="round"/><text x="256" y="319" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" fill="#f7f9fc">360</text></svg><div><h1>Property Care 360 Admin</h1><small>Adam Glover Plumbing & Heating</small></div></div><div class="actions"><button id="alertsBtn" class="btn primary hidden" type="button">Enable alerts</button><button id="installBtn" class="btn primary hidden" type="button">Install app</button><button id="logoutBtn" class="btn secondary hidden">Log out</button></div></div>
 
 <div id="loginView" class="card auth stack">
 <h2 style="margin:0">Owner sign in</h2>
@@ -155,6 +156,95 @@ window.addEventListener("appinstalled",()=>{
   installBtn.classList.add("hidden");
 });
 
+const VAPID_PUBLIC="BABsuwYDpv_LkOIzj01MvRj-DWPTc5ttaoTCdLylMEdxylSr7nLXkGEZuMZVLdxmRyMwXY2cALkAKXBv244FBWY";
+const alertsBtn=el("alertsBtn");
+let realtimeChannel=null;
+let realtimeTimer=null;
+
+function vapidKeyBytes(value){
+  const pad="=".repeat((4-value.length%4)%4);
+  const base64=(value+pad).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(ch=>ch.charCodeAt(0)));
+}
+
+async function refreshAlertsButton(){
+  if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){
+    alertsBtn.textContent="Alerts unsupported";
+    alertsBtn.disabled=true;
+    return;
+  }
+  const reg=await navigator.serviceWorker.ready;
+  const existing=await reg.pushManager.getSubscription();
+  if(existing && Notification.permission==="granted"){
+    alertsBtn.textContent="Alerts enabled";
+    alertsBtn.classList.remove("primary");
+    alertsBtn.classList.add("secondary");
+  }else{
+    alertsBtn.textContent="Enable alerts";
+    alertsBtn.classList.remove("secondary");
+    alertsBtn.classList.add("primary");
+  }
+}
+
+async function enableOwnerAlerts(){
+  try{
+    if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){
+      alert("Push notifications are not supported in this browser.");
+      return;
+    }
+    const permission=await Notification.requestPermission();
+    if(permission!=="granted"){
+      alert("Notifications are blocked. Allow notifications for Property Care 360 in your browser settings, then try again.");
+      return;
+    }
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vapidKeyBytes(VAPID_PUBLIC)});
+    }
+    const json=sub.toJSON();
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session?.user) throw new Error("Sign in again before enabling alerts.");
+    const {error}=await supabase.from("owner_push_subscriptions").upsert({
+      user_id:session.user.id,
+      endpoint:sub.endpoint,
+      p256dh:json.keys?.p256dh,
+      auth:json.keys?.auth,
+      updated_at:new Date().toISOString(),
+      last_seen_at:new Date().toISOString()
+    },{onConflict:"endpoint"});
+    if(error) throw error;
+    await refreshAlertsButton();
+    const {error:testError}=await supabase.functions.invoke("owner-push",{body:{action:"test"}});
+    if(testError) console.error("Push test:",testError);
+  }catch(err){
+    console.error(err);
+    alert("Could not enable notifications: "+(err?.message||err));
+  }
+}
+alertsBtn.addEventListener("click",enableOwnerAlerts);
+
+function stopRealtime(){
+  if(realtimeChannel){ supabase.removeChannel(realtimeChannel); realtimeChannel=null; }
+  if(realtimeTimer){ clearTimeout(realtimeTimer); realtimeTimer=null; }
+}
+function startRealtime(){
+  stopRealtime();
+  const refresh=()=>{
+    if(realtimeTimer) clearTimeout(realtimeTimer);
+    realtimeTimer=setTimeout(()=>{ void load().catch(console.error); },350);
+  };
+  realtimeChannel=supabase.channel("pc360-owner-live")
+    .on("postgres_changes",{event:"*",schema:"public",table:"customers"},refresh)
+    .on("postgres_changes",{event:"*",schema:"public",table:"properties"},refresh)
+    .on("postgres_changes",{event:"*",schema:"public",table:"jobs"},refresh)
+    .on("postgres_changes",{event:"*",schema:"public",table:"billing_records"},refresh)
+    .on("postgres_changes",{event:"*",schema:"public",table:"subscriptions"},refresh)
+    .on("postgres_changes",{event:"*",schema:"public",table:"account_deletion_requests"},refresh)
+    .subscribe();
+}
+
 let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[],deletions:[]};
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -183,7 +273,7 @@ el("setupForm").addEventListener("submit",async e=>{
     msg("Owner login created. Check your email to confirm the account, then sign in here.");
   }
 });
-el("logoutBtn").onclick=()=>supabase.auth.signOut();
+el("logoutBtn").onclick=()=>{stopRealtime();supabase.auth.signOut();};
 
 async function verifyAdmin(){
   const {data,error}=await supabase.rpc("is_home_care_admin");
@@ -262,8 +352,28 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.que
 
 async function sessionChanged(session){
   const logged=Boolean(session?.user);
-  if(!logged){el("loginView").classList.remove("hidden");el("adminView").classList.add("hidden");el("logoutBtn").classList.add("hidden");return}
-  try{if(!(await verifyAdmin())){await supabase.auth.signOut();msg("This account is not authorised for the owner dashboard.");return}el("loginView").classList.add("hidden");el("adminView").classList.remove("hidden");el("logoutBtn").classList.remove("hidden");await load()}catch(err){console.error(err);msg(err.message||"Admin check failed")}
+  if(!logged){
+    stopRealtime();
+    el("loginView").classList.remove("hidden");
+    el("adminView").classList.add("hidden");
+    el("logoutBtn").classList.add("hidden");
+    alertsBtn.classList.add("hidden");
+    return;
+  }
+  try{
+    if(!(await verifyAdmin())){
+      await supabase.auth.signOut();
+      msg("This account is not authorised for the owner dashboard.");
+      return;
+    }
+    el("loginView").classList.add("hidden");
+    el("adminView").classList.remove("hidden");
+    el("logoutBtn").classList.remove("hidden");
+    alertsBtn.classList.remove("hidden");
+    await load();
+    await refreshAlertsButton();
+    startRealtime();
+  }catch(err){console.error(err);msg(err.message||"Admin check failed")}
 }
 const ses=await supabase.auth.getSession();await sessionChanged(ses.data.session);supabase.auth.onAuthStateChange((_e,session)=>{setTimeout(()=>{void sessionChanged(session);},0);});
 </script>
