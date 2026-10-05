@@ -2,7 +2,7 @@
 
 ## Core listing
 - App name: Property Care 360
-- Bundle / package ID: uk.co.propertycare365.app
+- Bundle / package ID: uk.co.propertycare360.app
 - Version: 1.0.0
 - Primary language: English (UK)
 - Category: Utilities / Business
@@ -27,7 +27,7 @@ Use the app to:
 - Review billing records and Stripe invoices.
 - Receive optional local reminders for confirmed appointments.
 
-Property Care 360 supports homes, rental properties, second homes, holiday lets and managed property portfolios. Gas and LPG properties are supported where the work is within the engineer's qualifications and normal scope.
+Property Care 360 supports homes, rental properties, second homes, holiday lets and managed property portfolios. Gas, LPG and oil-heated properties are supported where the work is within the engineer's qualifications and normal scope. The service can also record common hot-water systems including unvented, vented and combi arrangements.
 
 The app is free to download. Property Care 360 is a paid service membership for real-world plumbing and heating services. Parts, materials and separately agreed remedial work may be charged separately. Property Care 360 is not an insurance policy.
 
