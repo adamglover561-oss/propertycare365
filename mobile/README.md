@@ -1,6 +1,6 @@
 # Property Care 360 mobile
 
-Android and iPhone customer app source for Adam Glover Plumbing & Heating. App identifier: `uk.co.propertycare365.app`. This project targets both the Apple App Store and Google Play; native signing and store submission still require the owner's developer accounts.
+Android and iPhone customer app source for Adam Glover Plumbing & Heating. App identifier: `uk.co.propertycare360.app`. This project targets both the Apple App Store and Google Play; native signing and store submission still require the owner's developer accounts.
 
 The customer portal is bundled into the app from `../public/app/index.html`; it connects to the same Supabase account and RLS-protected data. Stripe checkout, invoices and signed report URLs open in the native browser. Sign-up confirmation returns to the website; customers return to the app and sign in with their confirmed credentials. Website changes require a fresh app build and store update.
 
@@ -34,7 +34,7 @@ Only run `cap add` once for each platform. Open using `npx cap open android` or 
 - Provide a working review account with non-personal demonstration properties and reports; no real credentials are committed here.
 - Create signed Android AAB and iOS archive under the owner’s developer accounts; submit to internal testing/TestFlight before review. Newly created personal Google Play accounts may require a closed test with 12 testers for 14 consecutive days before production access.
 
-Store description draft: Manage your Property Care 360 membership from your phone. Keep your properties together, request plumbing and heating visits, book maintenance, and view your reports and billing. Optional reminders help you remember confirmed appointments. Gas and LPG properties are supported. The app is free to download; service memberships and chargeable materials are paid separately. Membership is a service agreement, not insurance.
+Store description draft: Manage your Property Care 360 membership from your phone. Keep your properties together, request plumbing and heating visits, book maintenance, and view your reports and billing. Optional reminders help you remember confirmed appointments. Gas, LPG and oil-heated properties are supported. The app is free to download; service memberships and chargeable materials are paid separately. Membership is a service agreement, not insurance.
 
 Support: adamglover561@gmail.com. Privacy: https://propertycare360.co.uk/privacy/. Terms: https://propertycare360.co.uk/terms/. App-store approval is not guaranteed; Apple assesses utility beyond a repackaged website.
 
