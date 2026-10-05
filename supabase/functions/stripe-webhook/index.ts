@@ -10,6 +10,22 @@ const supabase = createClient(url, adminKey, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
+async function notifyOwner(event: string, id: string) {
+  try {
+    const response = await fetch(`${url}/functions/v1/owner-push`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${adminKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ action: "internal-event", event, id })
+    });
+    if (!response.ok) console.error("Owner push failed", response.status, await response.text());
+  } catch (error) {
+    console.error("Owner push failed", error);
+  }
+}
+
 function getId(value: unknown): string | null {
   if (typeof value === "string") return value;
   if (value && typeof value === "object" && "id" in value) {
@@ -337,15 +353,18 @@ Deno.serve(async (req: Request) => {
         break;
       case "invoice.paid":
         await processInvoice(obj, true);
+        await notifyOwner("payment_paid", eventId);
         break;
       case "invoice.payment_failed":
         await processInvoice(obj, false);
+        await notifyOwner("payment_failed", eventId);
         break;
       case "customer.subscription.updated":
         await processSubscription(obj, false);
         break;
       case "customer.subscription.deleted":
         await processSubscription(obj, true);
+        await notifyOwner("subscription_canceled", eventId);
         break;
       default:
         break;
