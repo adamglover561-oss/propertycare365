@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#08111f">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="apple-mobile-web-app-title" content="PC360 Admin">\n<link rel="manifest" href="/admin/manifest.webmanifest">
+<meta name="theme-color" content="#08111f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PC360 Admin">\n<link rel="manifest" href="/admin/manifest.webmanifest">
 <title>Property Care 360 Admin</title>
 <style>
 :root{--bg:#08111f;--panel:#101b2e;--panel2:#0b1728;--text:#f7f9fc;--muted:#9fb0c8;--line:#263a57;--brand:#45b7ff;--good:#32d583;--warn:#fdb022;--bad:#f97066}
@@ -127,7 +130,9 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 const URL="https://zwehrboymqtmzrqucyyc.supabase.co";
 const KEY="sb_publishable_L6cuXJdswjOHnXA0Sl9_2g_K3iTrL31";
-const supabase=createClient(URL,KEY);\n
+const supabase=createClient(URL,KEY);
+const el=id=>document.getElementById(id);
+
 let deferredInstallPrompt=null;
 const installBtn=el("installBtn");
 if("serviceWorker" in navigator){
@@ -150,7 +155,6 @@ window.addEventListener("appinstalled",()=>{
   installBtn.classList.add("hidden");
 });
 
-const el=id=>document.getElementById(id);
 let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[],deletions:[]};
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
