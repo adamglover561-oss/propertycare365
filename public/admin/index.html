@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#08111f">
+<meta name="theme-color" content="#08111f">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="apple-mobile-web-app-title" content="PC360 Admin">\n<link rel="manifest" href="/admin/manifest.webmanifest">
 <title>Property Care 360 Admin</title>
 <style>
 :root{--bg:#08111f;--panel:#101b2e;--panel2:#0b1728;--text:#f7f9fc;--muted:#9fb0c8;--line:#263a57;--brand:#45b7ff;--good:#32d583;--warn:#fdb022;--bad:#f97066}
@@ -18,7 +18,7 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <link rel="icon" href="/icon.svg?v=360" type="image/svg+xml"></head>
 <body>
 <div class="wrap">
-<div class="top"><div class="brand"><svg class="brand-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M400 128a190 190 0 1 0 43 181" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round"/><path d="m356 129 49 3 6-49" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><path d="m148 238 108-88 108 88v120H148Z" fill="none" stroke="#f7f9fc" stroke-width="18" stroke-linejoin="round"/><text x="256" y="319" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" fill="#f7f9fc">360</text></svg><div><h1>Property Care 360 Admin</h1><small>Adam Glover Plumbing & Heating</small></div></div><button id="logoutBtn" class="btn secondary hidden">Log out</button></div>
+<div class="top"><div class="brand"><svg class="brand-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M400 128a190 190 0 1 0 43 181" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round"/><path d="m356 129 49 3 6-49" fill="none" stroke="#47b9ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><path d="m148 238 108-88 108 88v120H148Z" fill="none" stroke="#f7f9fc" stroke-width="18" stroke-linejoin="round"/><text x="256" y="319" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" fill="#f7f9fc">360</text></svg><div><h1>Property Care 360 Admin</h1><small>Adam Glover Plumbing & Heating</small></div></div><div class="actions"><button id="installBtn" class="btn primary hidden" type="button">Install app</button><button id="logoutBtn" class="btn secondary hidden">Log out</button></div></div>
 
 <div id="loginView" class="card auth stack">
 <h2 style="margin:0">Owner sign in</h2>
@@ -127,7 +127,29 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 const URL="https://zwehrboymqtmzrqucyyc.supabase.co";
 const KEY="sb_publishable_L6cuXJdswjOHnXA0Sl9_2g_K3iTrL31";
-const supabase=createClient(URL,KEY);
+const supabase=createClient(URL,KEY);\n
+let deferredInstallPrompt=null;
+const installBtn=el("installBtn");
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("/admin/sw.js",{scope:"/admin/"}).catch(err=>console.error("Admin service worker:",err)));
+}
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  deferredInstallPrompt=event;
+  installBtn.classList.remove("hidden");
+});
+installBtn.addEventListener("click",async()=>{
+  if(!deferredInstallPrompt)return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  installBtn.classList.add("hidden");
+});
+window.addEventListener("appinstalled",()=>{
+  deferredInstallPrompt=null;
+  installBtn.classList.add("hidden");
+});
+
 const el=id=>document.getElementById(id);
 let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[],deletions:[]};
 
