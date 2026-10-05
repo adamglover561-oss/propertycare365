@@ -21,9 +21,9 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          ASC_KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          for name in TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_B64; do
+          for name in TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY; do
             test -n "${!name}" || (echo "Missing required Apple secret: $name" && exit 1)
           done
       - name: Install dependencies
@@ -41,11 +41,11 @@ jobs:
       - name: Install App Store Connect API key
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_KEY_B64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
-          printf '%s' "$ASC_KEY_B64" | base64 --decode > "$KEY_PATH"
+          printf '%s' "$ASC_KEY" > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
       - name: Archive Property Care 360 with automatic signing
