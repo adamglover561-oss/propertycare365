@@ -43,6 +43,16 @@ jobs:
           chmod +x android/gradlew
           cd android
           ./gradlew bundleRelease
+      - name: Build installable Android test APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+      - name: Upload installable Android test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-care-360-android-test-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
       - name: Upload unsigned Android bundle
         uses: actions/upload-artifact@v4
         with:
