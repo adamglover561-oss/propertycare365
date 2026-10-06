@@ -14,6 +14,27 @@
 <section class="card cta-band"><div><span class="eyebrow">Start with one property</span><h2 style="margin:0 0 6px">Ready to put your property maintenance on a system?</h2><p class="muted" style="margin:0">Create your account, add the property and subscribe securely online. Add more properties later at the lower portfolio rates.</p></div><a class="btn primary" href="/app/">Create account & subscribe</a></section>
 <section class="section"><div class="card app-download"><div><span class="eyebrow">Property Care 360 app</span><h2 style="margin:0 0 8px">Keep every property in your pocket.</h2><p class="muted" style="margin:0">Install Property Care 360 on your phone for quick access to properties, bookings, breakdown requests, reports and billing.</p><div class="app-buttons"><button id="installAndroid" class="store-btn" type="button"><span class="store-icon">A</span><span class="store-copy"><small>INSTALL FOR</small><strong>Android</strong></span></button><button id="installIphone" class="store-btn" type="button"><span class="store-icon"></span><span class="store-copy"><small>INSTALL FOR</small><strong>iPhone</strong></span></button></div></div><div class="store-note"><strong>Official store listings are coming.</strong><p>The phone-install version works now. Once Apple App Store and Google Play approval is complete, these buttons will be switched to the official store downloads.</p><p style="margin-top:9px"><a href="/app/">Open Property Care 360 now →</a></p></div></div></section><footer style="padding-top:28px" class="small">Adam Glover Plumbing & Heating · <a href="mailto:adamglover561@gmail.com" style="color:#9fd8ff">adamglover561@gmail.com</a> · <a href="/terms/" style="color:#9fd8ff">Terms</a> · <a href="/privacy/" style="color:#9fd8ff">Privacy</a> · <a href="/support/" style="color:#9fd8ff">Support</a> · <a href="/delete-account/" style="color:#9fd8ff">Delete account</a></footer>
 </div><script>
+(function(){
+  const params=new URLSearchParams(location.search);
+  const ref=(params.get("ref")||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,80);
+  const partner=(params.get("partner")||"").trim().slice(0,120);
+  if(ref){
+    localStorage.setItem("pc360_partner_ref",ref);
+    localStorage.setItem("pc360_partner_first_url",location.href);
+    if(partner) localStorage.setItem("pc360_partner_name",partner);
+  }
+  const savedRef=localStorage.getItem("pc360_partner_ref")||"";
+  const savedName=localStorage.getItem("pc360_partner_name")||"";
+  if(savedRef){
+    document.querySelectorAll('a[href="/app/"]').forEach(a=>{
+      const u=new URL(a.getAttribute("href"),location.origin);
+      u.searchParams.set("ref",savedRef);
+      if(savedName) u.searchParams.set("partner",savedName);
+      a.setAttribute("href",u.pathname+u.search);
+    });
+  }
+})();
+</script><script>
 let pc360InstallPrompt=null;
 window.addEventListener("beforeinstallprompt",event=>{event.preventDefault();pc360InstallPrompt=event;});
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}
