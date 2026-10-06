@@ -73,12 +73,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 const SUPABASE_URL="https://zwehrboymqtmzrqucyyc.supabase.co";
 const SUPABASE_KEY="sb_publishable_L6cuXJdswjOHnXA0Sl9_2g_K3iTrL31";
 const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
+function capturePartnerReferral(){
+  const params=new URLSearchParams(location.search);
+  const ref=(params.get("ref")||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,80);
+  const partner=(params.get("partner")||"").trim().slice(0,120);
+  if(ref){
+    localStorage.setItem("pc360_partner_ref",ref);
+    if(partner) localStorage.setItem("pc360_partner_name",partner);
+    if(!localStorage.getItem("pc360_partner_first_url")) localStorage.setItem("pc360_partner_first_url",location.href);
+  }
+}
+function partnerReferral(){
+  return {
+    partner_ref:(localStorage.getItem("pc360_partner_ref")||"").slice(0,80),
+    partner_name:(localStorage.getItem("pc360_partner_name")||"").slice(0,120),
+    partner_first_url:(localStorage.getItem("pc360_partner_first_url")||"").slice(0,500)
+  };
+}
+capturePartnerReferral();
 const el=id=>document.getElementById(id);
 let state={user:null,customer:null,properties:[],subscriptions:[],covers:[],plans:[],jobs:[],reports:[],billing:[]};
 
-async function notifyOwner(event,id){
+async function notifyOwner(event,id,extra={}){
   try{
-    const {error}=await supabase.functions.invoke("owner-push",{body:{action:"customer-event",event,id}});
+    const {error}=await supabase.functions.invoke("owner-push",{body:{action:"customer-event",event,id,...extra}});
     if(error) console.error("Owner push:",error);
   }catch(error){ console.error("Owner push:",error); }
 }
@@ -93,10 +111,10 @@ function setAuthMode(mode){const up=mode==="signup";el("signUpForm").classList.t
 el("signInTab").onclick=()=>setAuthMode("signin");el("signUpTab").onclick=()=>setAuthMode("signup");
 
 el("signInForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();const {error}=await supabase.auth.signInWithPassword({email:el("loginEmail").value.trim(),password:el("loginPassword").value});if(error)showMessage(error.message);});el("forgotPasswordBtn").onclick=async()=>{const email=el("loginEmail").value.trim();if(!email)return showMessage("Enter your email address first.");const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:"https://propertycare360.co.uk/reset-password/"});if(error)return showMessage(error.message);showMessage("Password reset email sent. Check your inbox.");};
-el("signUpForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();const name=el("signupName").value.trim(),phone=el("signupPhone").value.trim();const {data,error}=await supabase.auth.signUp({email:el("signupEmail").value.trim(),password:el("signupPassword").value,options:{emailRedirectTo:location.origin+"/app/",data:{full_name:name,phone}}});if(error){showMessage(error.message);return;}if(!data.session){setAuthMode("signin");showMessage("Account created. Check your email to confirm it, then return here and sign in.");}});
+el("signUpForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();const name=el("signupName").value.trim(),phone=el("signupPhone").value.trim();const {data,error}=await supabase.auth.signUp({email:el("signupEmail").value.trim(),password:el("signupPassword").value,options:{emailRedirectTo:location.origin+"/app/",data:{full_name:name,phone,...partnerReferral()}}});if(error){showMessage(error.message);return;}if(!data.session){setAuthMode("signin");showMessage("Account created. Check your email to confirm it, then return here and sign in.");}});
 el("logoutBtn").onclick=()=>supabase.auth.signOut();
 
-async function ensureCustomer(user){const {data:existing,error}=await supabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();if(error)throw error;if(existing)return existing;const fullName=user.user_metadata?.full_name||user.email?.split("@")[0]||"Customer",phone=user.user_metadata?.phone||null;const {data,error:insertError}=await supabase.from("customers").insert({user_id:user.id,full_name:fullName,email:user.email,phone}).select().single();if(insertError){if(insertError.code!=="23505")throw insertError;const retry=await supabase.from("customers").select("*").eq("user_id",user.id).single();if(retry.error)throw retry.error;return retry.data;}void notifyOwner("customer_signup",data.id);return data;}
+async function ensureCustomer(user){const {data:existing,error}=await supabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();if(error)throw error;if(existing)return existing;const fullName=user.user_metadata?.full_name||user.email?.split("@")[0]||"Customer",phone=user.user_metadata?.phone||null;const {data,error:insertError}=await supabase.from("customers").insert({user_id:user.id,full_name:fullName,email:user.email,phone}).select().single();if(insertError){if(insertError.code!=="23505")throw insertError;const retry=await supabase.from("customers").select("*").eq("user_id",user.id).single();if(retry.error)throw retry.error;return retry.data;}void notifyOwner("customer_signup",data.id,partnerReferral());return data;}
 async function loadData(){state.customer=await ensureCustomer(state.user);const cid=state.customer.id;const [p,s,c,plans,j,r,b]=await Promise.all([supabase.from("properties").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("subscriptions").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("property_cover").select("*").order("created_at",{ascending:false}),supabase.from("plans").select("*").eq("active",true),supabase.from("jobs").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("reports").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("billing_records").select("*").eq("customer_id",cid).order("created_at",{ascending:false})]);for(const q of [p,s,c,plans,j,r,b])if(q.error)throw q.error;state.properties=p.data||[];state.subscriptions=s.data||[];state.covers=c.data||[];state.plans=plans.data||[];state.jobs=j.data||[];state.reports=r.data||[];state.billing=b.data||[];render();}
 function coverFor(pid){for(const cover of state.covers.filter(x=>x.property_id===pid&&x.active)){const sub=state.subscriptions.find(s=>s.id===cover.subscription_id);if(sub&&["active","trialing","past_due"].includes(sub.status))return {cover,sub};}return null;}
 function coveredCount(){return state.properties.filter(p=>coverFor(p.id)).length;}
