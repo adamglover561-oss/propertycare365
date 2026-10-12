@@ -133,17 +133,51 @@ function checkoutUrl(property){
   if(state.user.email)u.searchParams.set("locked_prefilled_email",state.user.email);
   return u.toString();
 }
+let checkoutInProgress=false;
 async function acceptTermsAndCheckout(property){
-  if(!state.customer.terms_accepted_at || state.customer.terms_version!=="1.1"){
-    const ok=confirm("Before paying, you must accept Property Care 360 Membership Terms version 1.1, including one breakdown visit with up to 60 minutes of on-site labour per membership year, the 14-day cooling-off information, and separate charges for additional labour, visits and parts. Property Care 360 is a service membership, not insurance.\n\nPress OK to accept and continue.");
-    if(!ok)return;
-    const early=confirm("Do you want to be able to request services during the 14-day cooling-off period? If you ask us to start during that period and then cancel, you may have to pay a reasonable amount for services already supplied.");
-    const {data,error}=await supabase.from("customers").update({terms_version:"1.1",terms_accepted_at:new Date().toISOString(),early_service_requested:early,updated_at:new Date().toISOString()}).eq("id",state.customer.id).select().single();
-    if(error)return alert(error.message);
-    state.customer=data;
-  }
+  if(checkoutInProgress)return;
+  const plan=planForNextProperty();
+  const amount=Number(plan?.monthly_price_pence);
   const url=checkoutUrl(property);
-  if(url)window.location.assign(url);
+  if(!plan || !url || ![4900,4400,3900].includes(amount)){
+    alert("This property's membership price or checkout is unavailable. Please contact us before paying.");
+    return;
+  }
+  const name=property.property_name||property.address_line1||"This property";
+  const terms="1.2";
+  const agreed=confirm([
+    "PROPERTY CARE 360 - MEMBERSHIP AGREEMENT",
+    "Property: "+name,
+    "Monthly instalment: "+fmtMoney(amount),
+    "Initial minimum term: 12 months, from first successful membership payment",
+    "Total for the first 12 months: "+fmtMoney(amount*12)+" (12 monthly payments)",
+    "After year one: rolling monthly, cancellable before the next renewal.",
+    "Includes one annual boiler service, a yearly plumbing check and one breakdown visit with up to 60 minutes of on-site labour, subject to suitability and terms.",
+    "Additional visits, labour, parts and materials are charged separately.",
+    "Your statutory cooling-off and other cancellation rights are preserved.",
+    "",
+    "Read Property Care 360 Membership Terms version 1.2 using the link on this page BEFORE continuing.",
+    "Press OK only if you have read the terms and expressly agree to this 12-month initial membership for this property. Cancel returns without charging."
+  ].join("\n"));
+  if(!agreed)return;
+  const early=confirm("Optional early service request: do you expressly ask us to start services during the first 14 days? Press OK to request an early start. Press Cancel to wait until the end of the cooling-off period and still proceed to payment. If you request early performance and then cancel during the cooling-off period, a reasonable proportionate charge may apply for services already supplied.");
+  checkoutInProgress=true;
+  try{
+    const {error:consentError}=await supabase.from("membership_checkout_consents").insert({
+      customer_id:state.customer.id,property_id:property.id,terms_version:terms,
+      monthly_price_pence:amount,initial_term_months:12,early_service_requested:early
+    });
+    if(consentError)throw consentError;
+    const {data,error}=await supabase.from("customers").update({
+      terms_version:terms,terms_accepted_at:new Date().toISOString(),
+      early_service_requested:early,updated_at:new Date().toISOString()
+    }).eq("id",state.customer.id).select().single();
+    if(error)throw error;
+    state.customer=data;
+    window.location.assign(url);
+  }catch(error){
+    alert("We could not securely record your membership agreement, so no payment was started. Please try again or contact us: "+error.message);
+  }finally{checkoutInProgress=false;}
 }
 async function requestMultiProperty(property){const {error}=await supabase.from("jobs").insert({property_id:property.id,customer_id:state.customer.id,job_type:"other",title:"Multi-property Property Care 360 quote",description:"Please set up the discounted Property Care 360 rate for this additional property.",status:"requested",labour_covered:false});if(error)return alert(error.message);alert("Request sent for the discounted additional-property rate.");await loadData();}
 function propertyCard(p){
