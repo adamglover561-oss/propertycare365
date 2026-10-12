@@ -207,7 +207,7 @@ el("bookingForm").addEventListener("submit",async e=>{
     duration_minutes:90,
     calendar_sync_status:"pending",
     booking_source:"customer",
-    labour_covered:false
+    labour_covered:["annual_service","plumbing_check"].includes(type)&&Boolean(coverFor(pid))
   }).select("id").single();
   if(error)return alert(error.message);
   void notifyOwner("booking_requested",data.id);
