@@ -1,0 +1,44 @@
+/* Property Care 360: light surfaces, navy type and accessible teal actions. */
+:root{--bg:#f4f8f7;--panel:#fff;--panel2:#edf5f3;--text:#142e40;--muted:#526873;--line:#cbdcd8;--brand:#087f75;--good:#177348;--warn:#8a5900;--bad:#b42318;color-scheme:light}
+body{background:radial-gradient(ellipse at 90% 0, #dcefe9 0, transparent 36rem),#f4f8f7;color:var(--text)}
+a{color:#076f67}a:hover{text-decoration:underline;text-underline-offset:3px}
+h1,h2,h3,h4,.brand{color:#142e40}
+.card,.listbox{background:#fff;border-color:var(--line);box-shadow:0 8px 28px rgba(20,46,64,.055)}
+.hero h1{letter-spacing:-.045em;line-height:1.08}
+.eyebrow,.tier .tier-kicker{color:#076f67}
+.primary,.btn.primary,.logo{background:#087f75;color:#fff}
+.primary:hover,.btn.primary:hover{background:#066b63;text-decoration:none}
+.secondary,.btn.secondary{background:#fff;color:#142e40;border:1px solid #a9c4bf}
+.secondary:hover,.btn.secondary:hover{background:#edf5f3;text-decoration:none}
+.btn{min-height:46px}
+.pill,.stat,.item,.plan-card,.pricing-note,.trustitem,.store-note,.next-rate,.notice{background:#edf5f3;color:#142e40;border-color:var(--line)}
+.trustitem{color:#24544f}
+.tier.highlight,.plan-card.primary-plan{border-color:#087f75;box-shadow:0 0 0 1px #087f75,0 10px 30px rgba(8,127,117,.08)}
+.tier-badge,.tag.good,.goodbtn{background:#e5f4eb;color:#17603c;border-color:#9cc9ae}
+.tag{background:#e5efee;color:#294e4a;border-color:var(--line)}
+.tag.warn{background:#fff4d9;color:#77500b;border-color:#d9bb70}
+.tag.bad,.btn.danger,.danger{background:#fff0ed;color:#9d251c;border-color:#e6aca6}
+.field label,.table th{color:#365562}
+.field input,.field select,.field textarea,input,select,textarea{background:#fff;color:#142e40;border-color:#a9c4bf}
+input::placeholder,textarea::placeholder{color:#647880;opacity:1}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#087f75;box-shadow:0 0 0 3px rgba(8,127,117,.14)}
+.table td{color:#142e40}
+.tabs{background:#e5efec}
+.tabs button{color:#45635e}
+.tabs button.active,.nav button.active{background:#d7ece5;color:#075d55;border-color:#9dc7bb;font-weight:800}
+.nav:has(.navin){background:rgba(255,255,255,.97)}
+.nav button{color:#526873;min-height:44px}
+.store-btn{background:#142e40;color:#fff;border-color:#142e40}
+.store-btn .store-icon{background:#284657}
+.store-btn .store-copy small{color:#d7e6eb}
+.plainlist.separate div:before{color:#087f75}
+.brand-mark path[stroke="#47b9ff"]{stroke:#087f75}
+.brand-mark path[stroke="#f7f9fc"]{stroke:#142e40}
+.brand-mark text{fill:#142e40}
+.urgent-box,.item.urgent-job{background:#fff5f2;border-color:#b42318}
+.urgent-help{background:#ffede8;color:#84251e;border-color:#d99b91}
+.urgent-help a{color:#84251e}
+.btn.urgent,.tag.urgent,.urgent-call{background:#b42318;color:#fff;border-color:#b42318}
+.urgent-result{background:#e8f5ee;color:#175d3f;border-color:#9ac7ae}
+:focus-visible{outline:3px solid #087f75;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}

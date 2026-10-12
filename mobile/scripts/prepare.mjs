@@ -1,5 +1,7 @@
 import { readFile,writeFile } from 'node:fs/promises';
 let html=await readFile('../public/app/index.html','utf8');
+const brandCss=await readFile('../public/brand.css','utf8');
+html=html.replace('<link rel="stylesheet" href="/brand.css?v=20261012">', '<style>'+brandCss+'</style>');
 html=html.replace('https://esm.sh/@supabase/supabase-js@2.57.4','@supabase/supabase-js')
 .replace(/<link rel="manifest"[^>]*>/,'').replace(/<link rel="icon"[^>]*>/,'')
 .replace('location.origin+"/app/"','"https://propertycare360.co.uk/app/"')
