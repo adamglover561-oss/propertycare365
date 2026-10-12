@@ -1,0 +1,26 @@
+name: Property Care 360 membership contract checks
+
+on:
+  push:
+    branches: [main, feature/pc360-initial-12-month-term-20261012]
+    paths:
+      - public/**
+      - supabase/migrations/**
+      - tests/membership-contract.test.cjs
+      - .github/workflows/membership-contract-ci.yml
+  pull_request:
+    paths:
+      - public/**
+      - supabase/migrations/**
+      - tests/membership-contract.test.cjs
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Test terms, consent, rates and checkout safeguards
+        run: node --test tests/membership-contract.test.cjs
