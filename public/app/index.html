@@ -27,7 +27,7 @@
 
 <main id="appView" class="hidden">
 <section id="homePage">
-<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£49/mo</strong><span>Full membership</span></div><div class="plan-card"><span>Properties 2–4</span><strong>£44/mo</strong><span>Each additional property</span></div><div class="plan-card"><span>Property 5+</span><strong>£39/mo</strong><span>Each additional property</span></div></div><div id="nextRateNote" class="next-rate">Your account will automatically apply the correct rate.</div><div class="muted small" style="margin-top:10px">Breakdown attendance and labour are included under the membership; chargeable materials are tracked separately. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
+<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£49/mo</strong><span>Full membership</span></div><div class="plan-card"><span>Properties 2–4</span><strong>£44/mo</strong><span>Each additional property</span></div><div class="plan-card"><span>Property 5+</span><strong>£39/mo</strong><span>Each additional property</span></div></div><div id="nextRateNote" class="next-rate">Your account will automatically apply the correct rate.</div><div class="muted small" style="margin-top:10px">One breakdown attendance with up to 60 minutes of on-site labour per property per membership year is included, subject to eligibility; further visits/labour, materials and remedial work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
 <div class="grid3"><div class="stat"><strong id="statProperties">0</strong><span>Properties</span></div><div class="stat"><strong id="statCovered">0</strong><span>Covered</span></div><div class="stat"><strong id="statJobs">0</strong><span>Open jobs</span></div></div>
 <div class="card" style="margin-top:14px"><h3 class="section-title">Quick actions</h3><div class="grid"><button class="btn primary" id="quickAddProperty">+ Add property</button><button class="btn secondary" id="quickBook">Book a visit</button><button class="btn secondary" id="quickBreakdown">Request breakdown</button></div></div>
 <div class="card"><h3 class="section-title">Your properties</h3><div id="homePropertyList" class="list"></div></div>
@@ -109,6 +109,8 @@ function showMessage(msg){el("authMessage").textContent=msg;el("authMessage").cl
 function hideMessage(){el("authMessage").classList.add("hidden");}
 function setAuthMode(mode){const up=mode==="signup";el("signUpForm").classList.toggle("hidden",!up);el("signInForm").classList.toggle("hidden",up);el("signUpTab").classList.toggle("active",up);el("signInTab").classList.toggle("active",!up);hideMessage();}
 el("signInTab").onclick=()=>setAuthMode("signin");el("signUpTab").onclick=()=>setAuthMode("signup");
+// Marketing visitors land on account creation; returning customers retain sign-in as default.
+if(new URLSearchParams(location.search).get("signup")==="1")setAuthMode("signup");
 
 el("signInForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();const {error}=await supabase.auth.signInWithPassword({email:el("loginEmail").value.trim(),password:el("loginPassword").value});if(error)showMessage(error.message);});el("forgotPasswordBtn").onclick=async()=>{const email=el("loginEmail").value.trim();if(!email)return showMessage("Enter your email address first.");const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:"https://propertycare360.co.uk/reset-password/"});if(error)return showMessage(error.message);showMessage("Password reset email sent. Check your inbox.");};
 el("signUpForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();const name=el("signupName").value.trim(),phone=el("signupPhone").value.trim();const {data,error}=await supabase.auth.signUp({email:el("signupEmail").value.trim(),password:el("signupPassword").value,options:{emailRedirectTo:location.origin+"/app/",data:{full_name:name,phone,...partnerReferral()}}});if(error){showMessage(error.message);return;}if(!data.session){setAuthMode("signin");showMessage("Account created. Check your email to confirm it, then return here and sign in.");}});
@@ -132,11 +134,11 @@ function checkoutUrl(property){
   return u.toString();
 }
 async function acceptTermsAndCheckout(property){
-  if(!state.customer.terms_accepted_at || state.customer.terms_version!=="1.0"){
-    const ok=confirm("Before paying, you must accept Property Care 360 Membership Terms version 1.0, including the 14-day cooling-off information and that parts/materials are charged separately. Property Care 360 is a service membership, not insurance.\n\nPress OK to accept and continue.");
+  if(!state.customer.terms_accepted_at || state.customer.terms_version!=="1.1"){
+    const ok=confirm("Before paying, you must accept Property Care 360 Membership Terms version 1.1, including one breakdown visit with up to 60 minutes of on-site labour per membership year, the 14-day cooling-off information, and separate charges for additional labour, visits and parts. Property Care 360 is a service membership, not insurance.\n\nPress OK to accept and continue.");
     if(!ok)return;
     const early=confirm("Do you want to be able to request services during the 14-day cooling-off period? If you ask us to start during that period and then cancel, you may have to pay a reasonable amount for services already supplied.");
-    const {data,error}=await supabase.from("customers").update({terms_version:"1.0",terms_accepted_at:new Date().toISOString(),early_service_requested:early,updated_at:new Date().toISOString()}).eq("id",state.customer.id).select().single();
+    const {data,error}=await supabase.from("customers").update({terms_version:"1.1",terms_accepted_at:new Date().toISOString(),early_service_requested:early,updated_at:new Date().toISOString()}).eq("id",state.customer.id).select().single();
     if(error)return alert(error.message);
     state.customer=data;
   }
@@ -184,7 +186,7 @@ el("reportList").addEventListener("click",async event=>{
 window.addEventListener("focus",()=>{if(state.user)void loadData().catch(console.error);});
 
 el("propertyForm").addEventListener("submit",async e=>{e.preventDefault();const {data,error}=await supabase.from("properties").insert({customer_id:state.customer.id,property_name:el("propertyName").value.trim()||null,address_line1:el("address1").value.trim(),town_city:el("town").value.trim(),postcode:el("postcode").value.trim().toUpperCase(),heating_fuel:el("propertyFuel").value,hot_water_system:el("hotWaterSystem").value,access_notes:el("accessNotes").value.trim()||null}).select("id").single();if(error)return alert(error.message);void notifyOwner("property_added",data.id);e.target.reset();e.target.classList.add("hidden");await loadData();});
-el("breakdownForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.properties.length)return alert("Add a property first.");const pid=el("jobProperty").value,{data,error}=await supabase.from("jobs").insert({property_id:pid,customer_id:state.customer.id,job_type:"breakdown",title:"Breakdown request",description:el("jobDescription").value.trim(),status:"requested",labour_covered:Boolean(coverFor(pid)),booking_source:"customer"}).select("id").single();if(error)return alert(error.message);void notifyOwner("breakdown_requested",data.id);e.target.reset();e.target.classList.add("hidden");alert("Breakdown request sent.");await loadData();});
+el("breakdownForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.properties.length)return alert("Add a property first.");const pid=el("jobProperty").value,{data,error}=await supabase.from("jobs").insert({property_id:pid,customer_id:state.customer.id,job_type:"breakdown",title:"Breakdown request",description:el("jobDescription").value.trim(),status:"requested",labour_covered:false,booking_source:"customer"}).select("id").single();if(error)return alert(error.message);void notifyOwner("breakdown_requested",data.id);e.target.reset();e.target.classList.add("hidden");alert("Breakdown request sent. We will confirm whether this qualifies for your unused annual included breakdown visit before agreeing any additional charges.");await loadData();});
 
 el("bookingForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -205,7 +207,7 @@ el("bookingForm").addEventListener("submit",async e=>{
     duration_minutes:90,
     calendar_sync_status:"pending",
     booking_source:"customer",
-    labour_covered:Boolean(coverFor(pid))
+    labour_covered:["annual_service","plumbing_check"].includes(type)&&Boolean(coverFor(pid))
   }).select("id").single();
   if(error)return alert(error.message);
   void notifyOwner("booking_requested",data.id);
