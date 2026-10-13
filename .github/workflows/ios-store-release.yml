@@ -48,11 +48,11 @@ jobs:
           printf '%s' "$ASC_KEY" > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-      - name: Archive Property Care 360 with automatic signing
+      # Archive without a development profile: App Store export below performs
+      # automatic distribution signing using the App Store Connect API key.
+      - name: Archive Property Care 360 for distribution export
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
@@ -60,12 +60,8 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/PropertyCare360.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             PRODUCT_BUNDLE_IDENTIFIER="uk.co.propertycare360.app" \
             archive
       - name: Export signed IPA
@@ -102,7 +98,7 @@ jobs:
         run: |
           IPA_PATH="$(find build/export -maxdepth 1 -name '*.ipa' -print -quit)"
           test -n "$IPA_PATH" || (echo "Signed IPA not found" && exit 1)
-          xcrun altool --validate-app             -f "$IPA_PATH"             -t ios             -u "adamglover561@gmail.com"             --apiKey "$ASC_KEY_ID"             --apiIssuer "$ASC_ISSUER_ID"
+          xcrun altool --validate-app             -f "$IPA_PATH"             -t ios             --apiKey "$ASC_KEY_ID"             --apiIssuer "$ASC_ISSUER_ID"
 
       - name: Upload IPA to App Store Connect
         env:
@@ -110,7 +106,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           IPA_PATH="$(find build/export -maxdepth 1 -name '*.ipa' -print -quit)"
-          xcrun altool --upload-app             -f "$IPA_PATH"             -t ios             -u "adamglover561@gmail.com"             --apiKey "$ASC_KEY_ID"             --apiIssuer "$ASC_ISSUER_ID"
+          xcrun altool --upload-app             -f "$IPA_PATH"             -t ios             --apiKey "$ASC_KEY_ID"             --apiIssuer "$ASC_ISSUER_ID"
 
       - name: Keep signed iPhone IPA as workflow artifact
         uses: actions/upload-artifact@v4
