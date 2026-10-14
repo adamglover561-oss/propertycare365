@@ -1,0 +1,96 @@
+name: Apple App Store Connect status audit
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apple-status-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-apple-status:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check uploaded builds, processing, store state and TestFlight groups
+        env:
+          BUNDLE_ID: uk.co.propertycare360.app
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          ASC_KEY_FORMAT: pem
+        run: |
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          require 'openssl'
+          require 'uri'
+          
+          key_id = ENV.fetch('ASC_KEY_ID')
+          issuer_id = ENV.fetch('ASC_ISSUER_ID')
+          key_input = ENV.fetch('ASC_PRIVATE_KEY')
+          key_input = Base64.decode64(key_input) if ENV['ASC_KEY_FORMAT'] == 'base64'
+          key = OpenSSL::PKey.read(key_input)
+          encode = ->(x) { Base64.urlsafe_encode64(JSON.generate(x), padding: false) }
+          now = Time.now.to_i
+          header = encode.call({ alg: 'ES256', kid: key_id, typ: 'JWT' })
+          payload = encode.call({ iss: issuer_id, iat: now, exp: now + 900, aud: 'appstoreconnect-v1' })
+          unsigned = [header, payload].join('.')
+          der = key.sign(OpenSSL::Digest::SHA256.new, unsigned)
+          raw_signature = OpenSSL::ASN1.decode(der).value.map { |i| [i.value.to_i.to_s(16).rjust(64, '0')].pack('H*') }.join
+          token = [unsigned, Base64.urlsafe_encode64(raw_signature, padding: false)].join('.')
+          
+          def get_apple(path, query, token)
+            uri = URI('https://api.appstoreconnect.apple.com' + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            request = Net::HTTP::Get.new(uri)
+            request['Authorization'] = 'Bearer ' + token
+            request['Accept'] = 'application/json'
+            response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 15, read_timeout: 25) { |http| http.request(request) }
+            unless response.is_a?(Net::HTTPSuccess)
+              error_titles = begin
+                JSON.parse(response.body).fetch('errors', []).map { |e| e['title'] }.compact.join('; ')
+              rescue StandardError
+                'no error title'
+              end
+              raise "App Store Connect #{path}: HTTP #{response.code}: #{error_titles}"
+            end
+            JSON.parse(response.body)
+          end
+          
+          bundle_id = ENV.fetch('BUNDLE_ID')
+          apps = get_apple('/v1/apps', { 'filter[bundleId]' => bundle_id, 'limit' => '10' }, token)
+          app = apps.fetch('data', []).find { |candidate| candidate.fetch('attributes', {})['bundleId'] == bundle_id }
+          abort "App Store Connect app not found for #{bundle_id}" unless app
+          app_id = app.fetch('id')
+          puts "App: #{app.dig('attributes', 'name')} (#{bundle_id})"
+          puts "Apple app record: present"
+          
+          builds = get_apple('/v1/builds', { 'filter[app]' => app_id, 'limit' => '10', 'sort' => '-uploadedDate' }, token)
+          puts "Uploaded builds found: #{builds.fetch('data', []).length}"
+          builds.fetch('data', []).each do |b|
+            attrs = b.fetch('attributes', {})
+            puts "Build #{attrs['version'] || '?'}: processing=#{attrs['processingState'] || 'unknown'}, uploaded=#{attrs['uploadedDate'] || 'unknown'}, expired=#{attrs['expired'] || 'unknown'}"
+          end
+          
+          begin
+            versions = get_apple("/v1/apps/#{app_id}/appStoreVersions", { 'limit' => '20' }, token)
+            versions.fetch('data', []).each do |v|
+              attrs = v.fetch('attributes', {})
+              puts "Store version #{attrs['versionString'] || '?'}: #{attrs['appStoreState'] || 'unknown'}"
+            end
+          rescue StandardError => e
+            puts "Store-version lookup unavailable: #{e.message}"
+          end
+          
+          begin
+            groups = get_apple("/v1/apps/#{app_id}/betaGroups", { 'limit' => '30' }, token)
+            groups.fetch('data', []).each do |group|
+              attrs = group.fetch('attributes', {})
+              puts "TestFlight group #{attrs['name'] || '?'}: internal=#{attrs['isInternalGroup']}"
+            end
+          rescue StandardError => e
+            puts "TestFlight-group lookup unavailable: #{e.message}"
+          end
