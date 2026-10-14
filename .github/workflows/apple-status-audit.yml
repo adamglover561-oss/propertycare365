@@ -90,7 +90,11 @@ jobs:
             groups = get_apple("/v1/apps/#{app_id}/betaGroups", { 'limit' => '30' }, token)
             groups.fetch('data', []).each do |group|
               attrs = group.fetch('attributes', {})
-              puts "TestFlight group #{attrs['name'] || '?'}: internal=#{attrs['isInternalGroup']}"
+              puts "TestFlight group #{attrs['name'] || '?'}: internal=#{attrs['isInternalGroup']}, all_builds=#{attrs['hasAccessToAllBuilds']}"
+            group_builds = get_apple("/v1/betaGroups/#{group.fetch('id')}/builds", { 'limit' => '50' }, token)
+            puts "Group assigned builds: #{group_builds.fetch('data', []).map { |build| build.dig('attributes', 'version') }.join(', ')}"
+            group_testers = get_apple("/v1/betaGroups/#{group.fetch('id')}/betaTesters", { 'limit' => '200' }, token)
+            puts "Group tester count on first page: #{group_testers.fetch('data', []).length}"
             end
           rescue StandardError => e
             puts "TestFlight-group lookup unavailable: #{e.message}"
