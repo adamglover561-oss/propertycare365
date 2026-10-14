@@ -22,6 +22,7 @@ jobs:
           ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           ASC_KEY_FORMAT: pem
         run: |
+          ruby <<'RUBY'
           require 'base64'
           require 'json'
           require 'net/http'
@@ -94,3 +95,4 @@ jobs:
           rescue StandardError => e
             puts "TestFlight-group lookup unavailable: #{e.message}"
           end
+          RUBY
