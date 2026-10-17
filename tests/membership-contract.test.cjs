@@ -80,3 +80,10 @@ test("append-only consent table blocks customer edits and protects tenant bounda
   assert.match(sql,/p.customer_id = c.id/);
   assert.match(sql,/c.user_id = \(SELECT auth.uid\(\)\)/);
 });
+test('oil properties cannot buy the gas/LPG core membership',async()=>{
+  const h=harness();
+  await h.checkout({id:'oil_property',heating_fuel:'oil'});
+  assert.equal(h.inserts.length,0);
+  assert.equal(h.navigations.length,0);
+  assert.match(h.alerts[0],/separate quote/);
+});
