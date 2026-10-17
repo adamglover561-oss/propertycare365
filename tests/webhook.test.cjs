@@ -84,3 +84,13 @@ test('checkout preserves an existing plumbing inspection due date',async()=>{
   assert.equal(t.properties[0].next_plumbing_check_due,'2026-12-15');
   assert.ok(t.properties[0].next_boiler_service_due);
 });
+test('core membership checkout records £19.99 without changing legacy plans',async()=>{
+  const {context:c,tables:t}=setup();
+  t.plans.push({id:'core',code:'home_care_core_1999',monthly_price_pence:1999});
+  await c.processCheckoutCompleted({id:'cs_core',client_reference_id:'hc_customer__prop',customer:'cus_core',subscription:'sub_core',payment_status:'paid',amount_total:1999,currency:'gbp',metadata:{plan_code:'home_care_core_1999'}});
+  assert.equal(t.property_cover[0].plan_id,'core');
+  assert.equal(t.property_cover[0].monthly_price_pence,1999);
+  assert.equal(t.property_cover[0].discount_percent,0);
+  assert.equal(t.billing_records[0].amount_pence,1999);
+  assert.equal(t.plans[0].monthly_price_pence,4900);
+});
