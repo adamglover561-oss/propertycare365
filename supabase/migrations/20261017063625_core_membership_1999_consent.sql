@@ -1,0 +1,2 @@
+ALTER TABLE public.membership_checkout_consents DROP CONSTRAINT membership_checkout_consents_terms_version_check, DROP CONSTRAINT membership_checkout_consents_monthly_price_pence_check;
+ALTER TABLE public.membership_checkout_consents ADD CONSTRAINT membership_checkout_consents_version_price_check CHECK ((terms_version = '1.2' AND monthly_price_pence IN (4900,4400,3900)) OR (terms_version = '1.3' AND monthly_price_pence = 1999));

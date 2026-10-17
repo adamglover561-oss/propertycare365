@@ -29,12 +29,12 @@
 <div class="tabs"><button id="signInTab" class="active">Sign in</button><button id="signUpTab">Create account</button></div>
 <div id="authMessage" class="notice hidden" role="status" aria-live="polite"></div>
 <form id="signInForm" class="stack"><h2>Welcome back</h2><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" required autocomplete="email"></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" required autocomplete="current-password"></div><button class="btn primary" type="submit">Sign in</button><button id="forgotPasswordBtn" class="btn secondary" type="button">Forgot password?</button></form>
-<form id="signUpForm" class="stack hidden"><h2>Create your Property Care 360 account</h2><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£49/mo</strong><span>Full membership</span></div><div class="plan-card"><span>Properties 2–4</span><strong>£44/mo</strong><span>Each additional property</span></div><div class="plan-card"><span>Property 5+</span><strong>£39/mo</strong><span>Each additional property</span></div></div><div class="muted small"><strong>12-month initial agreement for each property, paid monthly:</strong> first property £588 (12 × £49), properties 2–4 £528 each (12 × £44), property 5+ £468 each (12 × £39). Then rolling monthly. Statutory cancellation rights apply. Payments are handled securely by Stripe. <a href="/terms/" target="_blank" rel="noopener">Full membership terms</a>.</div><div class="field"><label for="signupName">Full name</label><input id="signupName" required></div><div class="field"><label for="signupPhone">Phone</label><input id="signupPhone" type="tel"></div><div class="field"><label for="signupEmail">Email</label><input id="signupEmail" type="email" required autocomplete="email"></div><div class="field"><label for="signupPassword">Password</label><input id="signupPassword" type="password" minlength="8" required autocomplete="new-password"></div><button class="btn primary" type="submit">Create account</button><div class="muted small">You may be asked to confirm your email before signing in.</div></form>
+<form id="signUpForm" class="stack hidden"><h2>Create your Property Care 360 account</h2><div class="pricing-strip"><div class="plan-card primary-plan"><span>Core membership per property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div></div><div class="muted small"><strong>12-month initial agreement for each property, paid monthly:</strong> £239.88 per property (12 × £19.99). Then rolling monthly. Statutory cancellation rights apply. Payments are handled securely by Stripe. <a href="/terms/" target="_blank" rel="noopener">Full membership terms</a>.</div><div class="field"><label for="signupName">Full name</label><input id="signupName" required></div><div class="field"><label for="signupPhone">Phone</label><input id="signupPhone" type="tel"></div><div class="field"><label for="signupEmail">Email</label><input id="signupEmail" type="email" required autocomplete="email"></div><div class="field"><label for="signupPassword">Password</label><input id="signupPassword" type="password" minlength="8" required autocomplete="new-password"></div><button class="btn primary" type="submit">Create account</button><div class="muted small">You may be asked to confirm your email before signing in.</div></form>
 </div>
 
 <main id="appView" class="hidden">
 <section id="homePage">
-<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£49/mo</strong><span>Full membership</span></div><div class="plan-card"><span>Properties 2–4</span><strong>£44/mo</strong><span>Each additional property</span></div><div class="plan-card"><span>Property 5+</span><strong>£39/mo</strong><span>Each additional property</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total depends on its property tier. Then rolling monthly.</div><div class="muted small" style="margin-top:10px">One breakdown attendance with up to 60 minutes of on-site labour per property per membership year is included, subject to eligibility; further visits/labour, materials and remedial work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
+<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>Core membership per property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 per property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px">One breakdown attendance with up to 60 minutes of on-site labour per property per membership year is included, subject to eligibility; further visits/labour, materials and remedial work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
 <div class="grid3"><div class="stat"><strong id="statProperties">0</strong><span>Properties</span></div><div class="stat"><strong id="statCovered">0</strong><span>Covered</span></div><div class="stat"><strong id="statJobs">0</strong><span>Open jobs</span></div></div>
 <div class="card" style="margin-top:14px"><h3 class="section-title">Quick actions</h3><div class="grid"><button class="btn primary" id="quickAddProperty">+ Add property</button><button class="btn secondary" id="quickBook">Book a visit</button><button class="btn secondary" id="quickBreakdown">Request breakdown</button><button class="btn urgent" id="quickUrgent" type="button">🚨 Emergency call-out</button></div></div>
 <div class="card"><h3 class="section-title">Your properties</h3><div id="homePropertyList" class="list"></div></div>
@@ -74,7 +74,7 @@
 <form id="bookingForm" class="stack" style="margin-top:12px">
 <div class="field"><label for="bookingProperty">Covered property</label><select id="bookingProperty" required></select></div>
 <div class="grid">
-<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="annual_service">Annual boiler service</option><option value="plumbing_check">Yearly plumbing check</option><option value="repair">Repair visit</option><option value="inspection">Inspection</option></select></div>
+<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="annual_service">Annual gas/LPG boiler service</option><option value="plumbing_check">Yearly plumbing check</option><option value="repair">Repair visit</option><option value="inspection">Inspection</option></select></div>
 <div class="field"><label for="bookingDate">Preferred date & time</label><input id="bookingDate" type="datetime-local" required></div>
 </div>
 <div class="field"><label for="bookingNotes">Notes</label><textarea id="bookingNotes" placeholder="Anything Adam should know before arriving?"></textarea></div>
@@ -145,9 +145,7 @@ async function loadData(){state.customer=await ensureCustomer(state.user);const 
 function coverFor(pid){for(const cover of state.covers.filter(x=>x.property_id===pid&&x.active)){const sub=state.subscriptions.find(s=>s.id===cover.subscription_id);if(sub&&["active","trialing","past_due"].includes(sub.status))return {cover,sub};}return null;}
 function coveredCount(){return state.properties.filter(p=>coverFor(p.id)).length;}
 function planForNextProperty(){
-  const covered=coveredCount();
-  const code=covered===0?"home_care_first_property":covered<4?"home_care_additional_2_4":"home_care_additional_5_plus";
-  return state.plans.find(p=>p.code===code);
+  return state.plans.find(p=>p.code==="home_care_core_1999");
 }
 function checkoutUrl(property){
   const plan=planForNextProperty();
@@ -160,15 +158,16 @@ function checkoutUrl(property){
 let checkoutInProgress=false;
 async function acceptTermsAndCheckout(property){
   if(checkoutInProgress)return;
+  if(!["gas","lpg"].includes(String(property.heating_fuel||"").toLowerCase())){alert("Oil servicing and other heating systems require a separate quote. Please contact us before subscribing.");return;}
   const plan=planForNextProperty();
   const amount=Number(plan?.monthly_price_pence);
   const url=checkoutUrl(property);
-  if(!plan || !url || ![4900,4400,3900].includes(amount)){
+  if(!plan || !url || amount!==1999){
     alert("This property's membership price or checkout is unavailable. Please contact us before paying.");
     return;
   }
   const name=property.property_name||property.address_line1||"This property";
-  const terms="1.2";
+  const terms="1.3";
   const agreed=confirm([
     "PROPERTY CARE 360 - MEMBERSHIP AGREEMENT",
     "Property: "+name,
@@ -176,11 +175,11 @@ async function acceptTermsAndCheckout(property){
     "Initial minimum term: 12 months, from first successful membership payment",
     "Total for the first 12 months: "+fmtMoney(amount*12)+" (12 monthly payments)",
     "After year one: rolling monthly, cancellable before the next renewal.",
-    "Includes one annual boiler service, a yearly plumbing check and one breakdown visit with up to 60 minutes of on-site labour, subject to suitability and terms.",
-    "Additional visits, labour, parts and materials are charged separately.",
+    "Includes one annual gas/LPG boiler service, a yearly plumbing check at the service visit and one breakdown visit with up to 60 minutes of on-site labour, subject to suitability and terms.",
+    "Oil servicing and additional appliances are quoted separately. Additional visits, labour, parts and materials are extra.",
     "Your statutory cooling-off and other cancellation rights are preserved.",
     "",
-    "Read Property Care 360 Membership Terms version 1.2 using the link on this page BEFORE continuing.",
+    "Read Property Care 360 Membership Terms version 1.3 using the link on this page BEFORE continuing.",
     "Press OK only if you have read the terms and expressly agree to this 12-month initial membership for this property. Cancel returns without charging."
   ].join("\n"));
   if(!agreed)return;
@@ -203,7 +202,7 @@ async function acceptTermsAndCheckout(property){
     alert("We could not securely record your membership agreement, so no payment was started. Please try again or contact us: "+error.message);
   }finally{checkoutInProgress=false;}
 }
-async function requestMultiProperty(property){const {error}=await supabase.from("jobs").insert({property_id:property.id,customer_id:state.customer.id,job_type:"other",title:"Multi-property Property Care 360 quote",description:"Please set up the discounted Property Care 360 rate for this additional property.",status:"requested",labour_covered:false});if(error)return alert(error.message);alert("Request sent for the discounted additional-property rate.");await loadData();}
+async function requestMultiProperty(property){const {error}=await supabase.from("jobs").insert({property_id:property.id,customer_id:state.customer.id,job_type:"other",title:"Multi-property Property Care 360 quote",description:"Please set up the Property Care 360 core rate for this additional property.",status:"requested",labour_covered:false});if(error)return alert(error.message);alert("Request sent for the additional-property setup.");await loadData();}
 function propertyCard(p){
   const cov=coverFor(p.id);
   let action;
@@ -253,7 +252,7 @@ el("bookingForm").addEventListener("submit",async e=>{
   const start=el("bookingDate").value?new Date(el("bookingDate").value):null;
   if(!start || start.getTime()<=Date.now()) return alert("Choose a future appointment time.");
   const type=el("bookingType").value;
-  const titles={annual_service:"Annual boiler service",plumbing_check:"Yearly plumbing check",repair:"Repair visit",inspection:"Inspection"};
+  const titles={annual_service:"Annual gas/LPG boiler service",plumbing_check:"Yearly plumbing check",repair:"Repair visit",inspection:"Inspection"};
   const {data,error}=await supabase.from("jobs").insert({
     property_id:pid,
     customer_id:state.customer.id,
@@ -353,5 +352,5 @@ if(new URLSearchParams(location.search).get("checkout")==="complete"){
 }supabase.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>{void applySession(session);},0);});
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(console.error));}
 </script>
-</body>
+<p class="small">The £19.99 core fee includes servicing of one gas/LPG boiler. Oil servicing and additional appliances are quoted separately before signup. The annual plumbing check takes place during the boiler-service visit.</p></body>
 </html>

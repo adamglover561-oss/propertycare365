@@ -133,13 +133,13 @@ async function processCheckoutCompleted(session: Record<string, any>) {
     .select("id, monthly_price_pence")
     .eq("code", (() => {
       const amount = typeof session.amount_total === "number" ? session.amount_total : null;
-      const inferred = amount === 4400
+      const inferred = amount === 1999 ? "home_care_core_1999" : amount === 4400
         ? "home_care_additional_2_4"
         : amount === 3900
           ? "home_care_additional_5_plus"
           : "home_care_first_property";
       const code = String(session.metadata?.plan_code || inferred);
-      return ["home_care_first_property","home_care_additional_2_4","home_care_additional_5_plus"].includes(code)
+      return ["home_care_core_1999","home_care_first_property","home_care_additional_2_4","home_care_additional_5_plus"].includes(code)
         ? code
         : inferred;
     })())
