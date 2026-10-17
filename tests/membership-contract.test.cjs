@@ -35,7 +35,7 @@ function harness(answers=[true,false],rate=1999){
 test("marketed contract prices disclose initial yearly commitment",()=>{
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(home.includes(s),"Homepage missing "+s);
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(partner.includes(s),"Partner page missing "+s);
-  assert.match(terms,/Version 1\.3/);
+  assert.match(terms,/Version 1\.4/);
   assert.match(terms,/After the initial 12 months/);
   assert.match(terms,/rolling/);
   assert.match(terms,/cooling-off/);
@@ -48,11 +48,11 @@ test("new membership checkout requires property-specific accepted evidence befor
   await h.checkout({heating_fuel:"gas",id:"property_1",property_name:"Sea View"});
   assert.equal(h.inserts.length,1);
   assert.equal(h.inserts[0].property_id,"property_1");
-  assert.equal(h.inserts[0].terms_version,"1.3");
+  assert.equal(h.inserts[0].terms_version,"1.4");
   assert.equal(h.inserts[0].monthly_price_pence,1999);
   assert.equal(h.inserts[0].initial_term_months,12);
   assert.equal(h.inserts[0].early_service_requested,false);
-  assert.equal(h.updates[0].terms_version,"1.3");
+  assert.equal(h.updates[0].terms_version,"1.4");
   assert.deepEqual(h.navigations,["/test-stripe-checkout"]);
 });
 
@@ -86,4 +86,26 @@ test('oil properties cannot buy the gas/LPG core membership',async()=>{
   assert.equal(h.inserts.length,0);
   assert.equal(h.navigations.length,0);
   assert.match(h.alerts[0],/separate quote/);
+});
+test('additional-property checkout records the £215.88 initial commitment',async()=>{
+  const h=harness([true,false],1799);
+  await h.checkout({id:'property_extra',heating_fuel:'lpg'});
+  assert.equal(h.inserts[0].monthly_price_pence,1799);
+  assert.equal(h.inserts[0].terms_version,'1.4');
+  assert.equal(h.navigations.length,1);
+});
+test('only an active first-property membership unlocks additional pricing',()=>{
+  const start=app.indexOf('function planForNextProperty(){');
+  const end=app.indexOf('function checkoutUrl(',start);
+  const state={plans:[{id:'base',code:'home_care_core_1999'},{id:'extra',code:'home_care_additional_1799'}],covers:[],subscriptions:[]};
+  const ctx=vm.createContext({state});
+  vm.runInContext(app.slice(start,end),ctx);
+  assert.equal(ctx.planForNextProperty().id,'base');
+  state.covers.push({active:true,plan_id:'base',subscription_id:'s'});
+  state.subscriptions.push({id:'s',status:'pending'});
+  assert.equal(ctx.planForNextProperty().id,'base');
+  state.subscriptions[0].status='active';
+  assert.equal(ctx.planForNextProperty().id,'extra');
+  state.subscriptions[0].status='canceled';
+  assert.equal(ctx.planForNextProperty().id,'base');
 });

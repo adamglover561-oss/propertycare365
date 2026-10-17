@@ -5,7 +5,7 @@ html=html.replace('<link rel="stylesheet" href="/brand.css?v=20261012">', '<styl
 html=html.replace('https://esm.sh/@supabase/supabase-js@2.57.4','@supabase/supabase-js')
 .replace(/<link rel="manifest"[^>]*>/,'').replace(/<link rel="icon"[^>]*>/,'')
 .replace('location.origin+"/app/"','"https://propertycare360.co.uk/app/"')
-.replace('if(url)window.location.assign(url);','if(url)await openExternal(url);')
+.replace('window.location.assign(url);','await openExternal(url);')
 .replace('window.location.assign(data.signedUrl);','await openExternal(data.signedUrl);')
 .replace('render();}','render();void syncReminders().catch(console.error);}')
 .replace('const logged=Boolean(state.user);','const logged=Boolean(state.user);if(!logged)void syncReminders().catch(console.error);')

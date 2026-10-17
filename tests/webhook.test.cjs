@@ -94,3 +94,11 @@ test('core membership checkout records £19.99 without changing legacy plans',as
   assert.equal(t.billing_records[0].amount_pence,1999);
   assert.equal(t.plans[0].monthly_price_pence,4900);
 });
+test('additional-property webhook assigns £17.99 plan and records correct payment',async()=>{
+  const {context:c,tables:t}=setup();
+  t.plans.push({id:'extra',code:'home_care_additional_1799',monthly_price_pence:1799});
+  await c.processCheckoutCompleted({id:'cs_extra',client_reference_id:'hc_customer__prop',customer:'cus_extra',subscription:'sub_extra',payment_status:'paid',amount_total:1799,currency:'gbp',metadata:{plan_code:'home_care_additional_1799'}});
+  assert.equal(t.property_cover[0].plan_id,'extra');
+  assert.equal(t.property_cover[0].monthly_price_pence,1799);
+  assert.equal(t.billing_records[0].amount_pence,1799);
+});

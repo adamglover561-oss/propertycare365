@@ -133,13 +133,13 @@ async function processCheckoutCompleted(session: Record<string, any>) {
     .select("id, monthly_price_pence")
     .eq("code", (() => {
       const amount = typeof session.amount_total === "number" ? session.amount_total : null;
-      const inferred = amount === 1999 ? "home_care_core_1999" : amount === 4400
+      const inferred = amount === 1799 ? "home_care_additional_1799" : amount === 1999 ? "home_care_core_1999" : amount === 4400
         ? "home_care_additional_2_4"
         : amount === 3900
           ? "home_care_additional_5_plus"
           : "home_care_first_property";
       const code = String(session.metadata?.plan_code || inferred);
-      return ["home_care_core_1999","home_care_first_property","home_care_additional_2_4","home_care_additional_5_plus"].includes(code)
+      return ["home_care_additional_1799","home_care_core_1999","home_care_first_property","home_care_additional_2_4","home_care_additional_5_plus"].includes(code)
         ? code
         : inferred;
     })())
@@ -153,7 +153,7 @@ async function processCheckoutCompleted(session: Record<string, any>) {
       property_id: propertyId,
       plan_id: plan.id,
       monthly_price_pence: plan.monthly_price_pence,
-      discount_percent: plan.monthly_price_pence === 4400 ? 10.20 : plan.monthly_price_pence === 3900 ? 20.41 : 0,
+      discount_percent: plan.monthly_price_pence === 1799 ? 10.01 : plan.monthly_price_pence === 4400 ? 10.20 : plan.monthly_price_pence === 3900 ? 20.41 : 0,
       active: true
     }, { onConflict: "subscription_id,property_id" });
   if (coverError) throw coverError;
