@@ -34,7 +34,7 @@
 
 <main id="appView" class="hidden">
 <section id="homePage">
-<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div><div class="plan-card"><span>Each additional property</span><strong>£17.99/mo</strong><span>£215.88 over the first 12 months · same customer account</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 for your first property or £215.88 for each additional property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px">Two call-outs at any time, each with up to 60 minutes of on-site labour, are included per property per membership year, subject to eligibility; further visits/labour, materials and remedial work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
+<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div><div class="plan-card"><span>Each additional property</span><strong>£17.99/mo</strong><span>£215.88 over the first 12 months · same customer account</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 for your first property or £215.88 for each additional property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px"><strong>New memberships from 30 October 2026:</strong> Five priority call-outs are included per property per membership year. Each includes attendance and up to 30 minutes of assessment or diagnosis; parts, repairs, further labour, servicing, safety checks and out-of-hours work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
 <div class="grid3"><div class="stat"><strong id="statProperties">0</strong><span>Properties</span></div><div class="stat"><strong id="statCovered">0</strong><span>Covered</span></div><div class="stat"><strong id="statJobs">0</strong><span>Open jobs</span></div></div>
 <div class="card" style="margin-top:14px"><h3 class="section-title">Quick actions</h3><div class="grid"><button class="btn primary" id="quickAddProperty">+ Add property</button><button class="btn secondary" id="quickBook">Book a visit</button><button class="btn secondary" id="quickBreakdown">Request breakdown</button><button class="btn urgent" id="quickUrgent" type="button">🚨 Emergency call-out</button></div></div>
 <div class="card"><h3 class="section-title">Your properties</h3><div id="homePropertyList" class="list"></div></div>
@@ -52,7 +52,7 @@
 <form id="urgentForm" class="card stack urgent-box hidden">
 <div class="row mobile-stack"><h3 class="section-title">Emergency plumbing / heating call-out</h3><button type="button" id="cancelUrgent" class="btn secondary">Close</button></div>
 <div class="urgent-help"><strong>Safety first:</strong> If you smell gas or suspect carbon monoxide, leave the property, do not use electrical switches, and call the National Gas Emergency Service on <a href="tel:0800111999">0800 111 999</a>. If anyone is in immediate danger or there is a fire, call <a href="tel:999">999</a>. This request is not monitored as an emergency service.</div>
-<div class="notice">We will prioritise this request where possible, but submitting it does not guarantee immediate contact or a two-hour attendance. Your two included annual call-outs can take place at any time, subject to availability. For the fastest contact, also call Adam directly.</div>
+<div class="notice">We will prioritise this request where possible, but submitting it does not guarantee immediate contact or a fixed attendance time. Included call-outs are subject to eligibility and availability; out-of-hours attendance is charged separately. For the fastest contact, also call Adam directly.</div>
 <div class="field"><label for="urgentProperty">Which property?</label><select id="urgentProperty" required></select></div>
 <div class="field"><label for="urgentIssue">What's gone wrong?</label><select id="urgentIssue" required>
 <option value="">Choose a problem</option>
@@ -74,7 +74,7 @@
 <form id="bookingForm" class="stack" style="margin-top:12px">
 <div class="field"><label for="bookingProperty">Covered property</label><select id="bookingProperty" required></select></div>
 <div class="grid">
-<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="annual_service">Annual gas/LPG boiler service</option><option value="plumbing_check">Yearly plumbing check</option><option value="repair">Repair visit</option><option value="inspection">Inspection</option></select></div>
+<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="repair">Priority call-out</option><option value="annual_service">Boiler service — quoted separately</option><option value="plumbing_check">Plumbing inspection — quoted separately</option><option value="inspection">Other planned inspection — quoted separately</option></select></div>
 <div class="field"><label for="bookingDate">Preferred date & time</label><input id="bookingDate" type="datetime-local" required></div>
 </div>
 <div class="field"><label for="bookingNotes">Notes</label><textarea id="bookingNotes" placeholder="Anything Adam should know before arriving?"></textarea></div>
@@ -168,7 +168,7 @@ async function acceptTermsAndCheckout(property){
     return;
   }
   const name=property.property_name||property.address_line1||"This property";
-  const terms="1.4";
+  const terms="1.5";
   const agreed=confirm([
     "PROPERTY CARE 360 - MEMBERSHIP AGREEMENT",
     "Property: "+name,
@@ -176,11 +176,11 @@ async function acceptTermsAndCheckout(property){
     "Initial minimum term: 12 months, from first successful membership payment",
     "Total for the first 12 months: "+fmtMoney(amount*12)+" (12 monthly payments)",
     "After year one: rolling monthly, cancellable before the next renewal.",
-    "Includes one annual gas/LPG boiler service, a yearly plumbing check at the service visit and two call-outs per membership year at any time, each with up to 60 minutes of on-site labour, subject to suitability and terms.",
-    "Oil servicing and additional appliances are quoted separately. Additional visits, labour, parts and materials are extra.",
+    "Includes five priority plumbing or heating call-outs per membership year. Each includes attendance and up to 30 minutes of assessment or diagnosis, subject to eligibility, availability and the terms.",
+    "Parts, repairs, servicing, safety checks, labour after 30 minutes, additional visits and out-of-hours work are extra.",
     "Your statutory cooling-off and other cancellation rights are preserved.",
     "",
-    "Read Property Care 360 Membership Terms version 1.4 using the link on this page BEFORE continuing.",
+    "Read Property Care 360 Membership Terms version 1.5 using the link on this page BEFORE continuing.",
     "Press OK only if you have read the terms and expressly agree to this 12-month initial membership for this property. Cancel returns without charging."
   ].join("\n"));
   if(!agreed)return;
@@ -213,7 +213,7 @@ function propertyCard(p){
     const price=plan?fmtMoney(plan.monthly_price_pence):"";
     action=plan?'<button class="btn primary startCoverBtn" data-id="'+esc(p.id)+'">Start '+esc(price)+'/mo · 12-month agreement</button>':'<span class="tag warn">Checkout unavailable</span>';
   }
-  return '<div class="item"><div class="row mobile-stack"><div><h4>'+esc(p.property_name||p.address_line1)+'</h4><div class="muted small">'+esc(p.address_line1)+", "+esc(p.town_city)+", "+esc(p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+" · "+esc((p.hot_water_system||"not_sure").replaceAll("_"," ")) + '</div><div class="muted small" style="margin-top:5px">Next boiler service: '+esc(p.next_boiler_service_due?fmtDate(p.next_boiler_service_due):"set when membership starts")+' · Plumbing check: '+esc(p.next_plumbing_check_due?fmtDate(p.next_plumbing_check_due):"set when membership starts")+'</div></div><div>'+action+"</div></div></div>";
+  return '<div class="item"><div class="row mobile-stack"><div><h4>'+esc(p.property_name||p.address_line1)+'</h4><div class="muted small">'+esc(p.address_line1)+", "+esc(p.town_city)+", "+esc(p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+" · "+esc((p.hot_water_system||"not_sure").replaceAll("_"," ")) + '</div></div><div>'+action+"</div></div></div>";
 }
 function render(){el("statProperties").textContent=state.properties.length;el("statCovered").textContent=coveredCount();el("statJobs").textContent=state.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;const nextPlan=planForNextProperty();el("nextRateNote").textContent=nextPlan?"Your next property is "+fmtMoney(nextPlan.monthly_price_pence)+"/month for the first 12 months ("+fmtMoney(nextPlan.monthly_price_pence*12)+" total), then rolling monthly. Statutory cancellation rights apply.":"Each property has a 12-month initial agreement paid monthly, then rolling monthly.";const props=state.properties.length?state.properties.map(propertyCard).join(""):'<div class="empty">No properties yet. Add your first property to get started.</div>';el("homePropertyList").innerHTML=props;el("propertyList").innerHTML=props;document.querySelectorAll(".startCoverBtn").forEach(btn=>btn.onclick=()=>{const p=state.properties.find(x=>x.id===btn.dataset.id);if(p)acceptTermsAndCheckout(p);});el("urgentProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+"</option>").join("");el("jobProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+'</option>').join("");
   const coveredProps=state.properties.filter(p=>coverFor(p.id));
@@ -244,7 +244,7 @@ el("reportList").addEventListener("click",async event=>{
 window.addEventListener("focus",()=>{if(state.user)void loadData().catch(console.error);});
 
 el("propertyForm").addEventListener("submit",async e=>{e.preventDefault();const {data,error}=await supabase.from("properties").insert({customer_id:state.customer.id,property_name:el("propertyName").value.trim()||null,address_line1:el("address1").value.trim(),town_city:el("town").value.trim(),postcode:el("postcode").value.trim().toUpperCase(),heating_fuel:el("propertyFuel").value,hot_water_system:el("hotWaterSystem").value,access_notes:el("accessNotes").value.trim()||null}).select("id").single();if(error)return alert(error.message);void notifyOwner("property_added",data.id);e.target.reset();e.target.classList.add("hidden");await loadData();});
-el("breakdownForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.properties.length)return alert("Add a property first.");const pid=el("jobProperty").value,{data,error}=await supabase.from("jobs").insert({property_id:pid,customer_id:state.customer.id,job_type:"breakdown",title:"Breakdown request",description:el("jobDescription").value.trim(),status:"requested",labour_covered:false,booking_source:"customer"}).select("id").single();if(error)return alert(error.message);void notifyOwner("breakdown_requested",data.id);e.target.reset();e.target.classList.add("hidden");alert("Breakdown request sent. We will confirm whether this qualifies for one of your two annual included call-outs before agreeing any additional charges.");await loadData();});
+el("breakdownForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.properties.length)return alert("Add a property first.");const pid=el("jobProperty").value,{data,error}=await supabase.from("jobs").insert({property_id:pid,customer_id:state.customer.id,job_type:"breakdown",title:"Breakdown request",description:el("jobDescription").value.trim(),status:"requested",labour_covered:false,booking_source:"customer"}).select("id").single();if(error)return alert(error.message);void notifyOwner("breakdown_requested",data.id);e.target.reset();e.target.classList.add("hidden");alert("Call-out request sent. We will confirm eligibility and whether the property has an included call-out remaining before agreeing any additional charges.");await loadData();});
 
 el("bookingForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -253,7 +253,7 @@ el("bookingForm").addEventListener("submit",async e=>{
   const start=el("bookingDate").value?new Date(el("bookingDate").value):null;
   if(!start || start.getTime()<=Date.now()) return alert("Choose a future appointment time.");
   const type=el("bookingType").value;
-  const titles={annual_service:"Annual gas/LPG boiler service",plumbing_check:"Yearly plumbing check",repair:"Repair visit",inspection:"Inspection"};
+  const titles={annual_service:"Boiler service quote request",plumbing_check:"Plumbing inspection quote request",repair:"Priority call-out",inspection:"Planned inspection quote request"};
   const {data,error}=await supabase.from("jobs").insert({
     property_id:pid,
     customer_id:state.customer.id,
@@ -262,10 +262,10 @@ el("bookingForm").addEventListener("submit",async e=>{
     description:el("bookingNotes").value.trim()||null,
     status:"requested",
     scheduled_for:start.toISOString(),
-    duration_minutes:90,
+    duration_minutes:type==="repair"?30:90,
     calendar_sync_status:"pending",
     booking_source:"customer",
-    labour_covered:["annual_service","plumbing_check"].includes(type)&&Boolean(coverFor(pid))
+    labour_covered:type==="repair"&&Boolean(coverFor(pid))
   }).select("id").single();
   if(error)return alert(error.message);
   void notifyOwner("booking_requested",data.id);
@@ -353,5 +353,5 @@ if(new URLSearchParams(location.search).get("checkout")==="complete"){
 }supabase.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>{void applySession(session);},0);});
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(console.error));}
 </script>
-<p class="small">The £19.99 core fee includes servicing of one gas/LPG boiler. Oil servicing and additional appliances are quoted separately before signup. The annual plumbing check takes place during the boiler-service visit.</p></body>
+<p class="small">The £19.99 core membership includes five priority call-out attendances per year, each with up to 30 minutes of assessment or diagnosis. Parts, repairs, servicing, safety checks and further labour are quoted separately.</p></body>
 </html>
