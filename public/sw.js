@@ -1,4 +1,4 @@
-const CACHE="pc360-two-callouts-20261019";
+const CACHE="pc360-five-callouts-20261030";
 const APP_SHELL=["/app/","/manifest.webmanifest","/icon.svg","/brand.css?v=20261012"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)));
