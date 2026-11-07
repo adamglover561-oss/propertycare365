@@ -127,14 +127,14 @@ test('only an active first-property membership unlocks additional pricing',()=>{
 });
 
 test("live checkout contract versions 1.5 and 1.6 have a matching database constraint migration",()=>{
-  assert.match(sqlV16,/terms_version IN \\('1\\.4', '1\\.5', '1\\.6'\\)/);
-  assert.match(sqlV16,/monthly_price_pence IN \\(1999, 1799\\)/);
-  assert.match(sqlV16,/terms_version = '1\\.2'/);
-  assert.match(sqlV16,/terms_version = '1\\.3'/);
+  assert.ok(sqlV16.includes("terms_version IN ('1.4', '1.5', '1.6')"));
+  assert.ok(sqlV16.includes("monthly_price_pence IN (1999, 1799)"));
+  assert.ok(sqlV16.includes("terms_version = '1.2'"));
+  assert.ok(sqlV16.includes("terms_version = '1.3'"));
 });
 test("yearly boiler service and plumbing check share one booking, non-gas checkout is blocked",()=>{
-  assert.match(app,/Annual gas\\/LPG boiler service \\+ visual plumbing check/);
-  assert.doesNotMatch(app,/<option value="plumbing_check">/);
-  assert.match(app,/Only eligible gas\\/LPG properties can purchase this core membership online/);
-  assert.match(app,/Annual gas\\/LPG boiler service and plumbing check request/);
+  assert.ok(app.includes("Annual gas/LPG boiler service + visual plumbing check"));
+  assert.ok(!app.includes('<option value="plumbing_check">'));
+  assert.ok(app.includes("Only eligible gas/LPG properties can purchase this core membership online"));
+  assert.ok(app.includes("Annual gas/LPG boiler service and plumbing check request"));
 });
