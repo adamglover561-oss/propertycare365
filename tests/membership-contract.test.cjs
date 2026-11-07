@@ -35,7 +35,7 @@ function harness(answers=[true,false],rate=1999){
 test("marketed contract prices disclose initial yearly commitment",()=>{
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(home.includes(s),"Homepage missing "+s);
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(partner.includes(s),"Partner page missing "+s);
-  assert.match(terms,/Version 1\.4/);
+  assert.match(terms,/Version 1\.6/);
   assert.match(terms,/After the initial 12 months/);
   assert.match(terms,/rolling/);
   assert.match(terms,/cooling-off/);
@@ -43,16 +43,31 @@ test("marketed contract prices disclose initial yearly commitment",()=>{
   assert.doesNotMatch(terms,/you may stop future monthly renewals by cancelling before the next billing date/i);
 });
 
+test("all consumer-facing pages match the confirmed five-call-out and annual-service benefits",()=>{
+  for(const [name,html] of [["homepage",home],["partner page",partner],["signup app",app],["terms",terms]]){
+    assert.match(html,/five.{0,90}call-out/i,name+" missing five call-outs");
+    assert.match(html,/boiler service/i,name+" missing annual boiler service");
+    assert.match(html,/plumbing (condition )?check/i,name+" missing annual plumbing check");
+    assert.ok(!html.includes("Two call-outs/year")&&!html.includes("Two call-outs per membership year"),name+" contains retired allowance");
+  }
+  assert.ok(terms.includes("Version 1.6"));
+  assert.ok(app.includes('const terms="1.6"'));
+  assert.ok(terms.includes("/terms/v1.5/"));
+  assert.ok(terms.includes("/terms/v1.4/"));
+  assert.doesNotMatch(home,/remote property-care review/i);
+  assert.doesNotMatch(app,/Boiler service — quoted separately/);
+});
+
 test("new membership checkout requires property-specific accepted evidence before Stripe",async()=>{
   const h=harness([true,false],1999);
   await h.checkout({heating_fuel:"gas",id:"property_1",property_name:"Sea View"});
   assert.equal(h.inserts.length,1);
   assert.equal(h.inserts[0].property_id,"property_1");
-  assert.equal(h.inserts[0].terms_version,"1.4");
+  assert.equal(h.inserts[0].terms_version,"1.6");
   assert.equal(h.inserts[0].monthly_price_pence,1999);
   assert.equal(h.inserts[0].initial_term_months,12);
   assert.equal(h.inserts[0].early_service_requested,false);
-  assert.equal(h.updates[0].terms_version,"1.4");
+  assert.equal(h.updates[0].terms_version,"1.6");
   assert.deepEqual(h.navigations,["/test-stripe-checkout"]);
 });
 
@@ -85,13 +100,13 @@ test('oil properties cannot buy the gas/LPG core membership',async()=>{
   await h.checkout({id:'oil_property',heating_fuel:'oil'});
   assert.equal(h.inserts.length,0);
   assert.equal(h.navigations.length,0);
-  assert.match(h.alerts[0],/separate quote/);
+  assert.match(h.alerts[0],/separate quotation/);
 });
 test('additional-property checkout records the £215.88 initial commitment',async()=>{
   const h=harness([true,false],1799);
   await h.checkout({id:'property_extra',heating_fuel:'lpg'});
   assert.equal(h.inserts[0].monthly_price_pence,1799);
-  assert.equal(h.inserts[0].terms_version,'1.4');
+  assert.equal(h.inserts[0].terms_version,'1.6');
   assert.equal(h.navigations.length,1);
 });
 test('only an active first-property membership unlocks additional pricing',()=>{
