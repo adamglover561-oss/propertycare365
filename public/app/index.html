@@ -34,7 +34,7 @@
 
 <main id="appView" class="hidden">
 <section id="homePage">
-<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div><div class="plan-card"><span>Each additional property</span><strong>£17.99/mo</strong><span>£215.88 over the first 12 months · same customer account</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 for your first property or £215.88 for each additional property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px"><strong>New memberships from 30 October 2026:</strong> Five priority call-outs are included per property per membership year. Each includes attendance and up to 30 minutes of assessment or diagnosis; parts, repairs, further labour, servicing, safety checks and out-of-hours work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
+<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div><div class="plan-card"><span>Each additional property</span><strong>£17.99/mo</strong><span>£215.88 over the first 12 months · same customer account</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 for your first property or £215.88 for each additional property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px"><strong>New memberships from 7 November 2026:</strong> Five priority call-outs for each eligible gas/LPG property per membership year (attendance plus up to 30 minutes of assessment or diagnosis each), one annual gas/LPG boiler service and one annual visual plumbing check at that appointment. Parts, repairs, further labour, oil or additional-appliance servicing, landlord gas-safety certificates and out-of-hours work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
 <div class="grid3"><div class="stat"><strong id="statProperties">0</strong><span>Properties</span></div><div class="stat"><strong id="statCovered">0</strong><span>Covered</span></div><div class="stat"><strong id="statJobs">0</strong><span>Open jobs</span></div></div>
 <div class="card" style="margin-top:14px"><h3 class="section-title">Quick actions</h3><div class="grid"><button class="btn primary" id="quickAddProperty">+ Add property</button><button class="btn secondary" id="quickBook">Book a visit</button><button class="btn secondary" id="quickBreakdown">Request breakdown</button><button class="btn urgent" id="quickUrgent" type="button">🚨 Emergency call-out</button></div></div>
 <div class="card"><h3 class="section-title">Your properties</h3><div id="homePropertyList" class="list"></div></div>
@@ -74,7 +74,7 @@
 <form id="bookingForm" class="stack" style="margin-top:12px">
 <div class="field"><label for="bookingProperty">Covered property</label><select id="bookingProperty" required></select></div>
 <div class="grid">
-<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="repair">Priority call-out</option><option value="annual_service">Boiler service — quoted separately</option><option value="plumbing_check">Plumbing inspection — quoted separately</option><option value="inspection">Other planned inspection — quoted separately</option></select></div>
+<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="repair">Priority call-out</option><option value="annual_service">Annual gas/LPG boiler service — included for eligible members</option><option value="plumbing_check">Annual visual plumbing check — included for eligible members</option><option value="inspection">Other planned inspection — quoted separately</option></select></div>
 <div class="field"><label for="bookingDate">Preferred date & time</label><input id="bookingDate" type="datetime-local" required></div>
 </div>
 <div class="field"><label for="bookingNotes">Notes</label><textarea id="bookingNotes" placeholder="Anything Adam should know before arriving?"></textarea></div>
@@ -167,7 +167,7 @@ async function acceptTermsAndCheckout(property){
     return;
   }
   const name=property.property_name||property.address_line1||"This property";
-  const terms="1.5";
+  const terms="1.6";
   const agreed=confirm([
     "PROPERTY CARE 360 - MEMBERSHIP AGREEMENT",
     "Property: "+name,
@@ -175,11 +175,11 @@ async function acceptTermsAndCheckout(property){
     "Initial minimum term: 12 months, from first successful membership payment",
     "Total for the first 12 months: "+fmtMoney(amount*12)+" (12 monthly payments)",
     "After year one: rolling monthly, cancellable before the next renewal.",
-    "Includes five priority plumbing or heating call-outs per membership year. Each includes attendance and up to 30 minutes of assessment or diagnosis, subject to eligibility, availability and the terms.",
-    "Parts, repairs, servicing, safety checks, labour after 30 minutes, additional visits and out-of-hours work are extra.",
+    "Includes five priority plumbing or heating call-outs per membership year (attendance and up to 30 minutes of assessment or diagnosis each), one annual gas/LPG boiler service and an annual visual plumbing check at the same visit, subject to eligibility, availability and the terms.",
+    "Parts, repairs, labour after 30 minutes, oil or additional-appliance servicing, landlord gas-safety certificates, additional visits and out-of-hours work are extra.",
     "Your statutory cooling-off and other cancellation rights are preserved.",
     "",
-    "Read Property Care 360 Membership Terms version 1.5 using the link on this page BEFORE continuing.",
+    "Read Property Care 360 Membership Terms version 1.6 using the link on this page BEFORE continuing.",
     "Press OK only if you have read the terms and expressly agree to this 12-month initial membership for this property. Cancel returns without charging."
   ].join("\n"));
   if(!agreed)return;
