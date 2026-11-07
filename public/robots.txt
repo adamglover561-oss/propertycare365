@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /app/
+Disallow: /reset-password/
+Disallow: /delete-account/
+Sitemap: https://propertycare360.co.uk/sitemap.xml
