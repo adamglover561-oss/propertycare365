@@ -35,7 +35,7 @@ function harness(answers=[true,false],rate=1999){
 test("marketed contract prices disclose initial yearly commitment",()=>{
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(home.includes(s),"Homepage missing "+s);
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(partner.includes(s),"Partner page missing "+s);
-  assert.match(terms,/Version 1\.4/);
+  assert.match(terms,/Version 1\.6/);
   assert.match(terms,/After the initial 12 months/);
   assert.match(terms,/rolling/);
   assert.match(terms,/cooling-off/);
@@ -100,7 +100,7 @@ test('oil properties cannot buy the gas/LPG core membership',async()=>{
   await h.checkout({id:'oil_property',heating_fuel:'oil'});
   assert.equal(h.inserts.length,0);
   assert.equal(h.navigations.length,0);
-  assert.match(h.alerts[0],/separate quote/);
+  assert.match(h.alerts[0],/separate quotation/);
 });
 test('additional-property checkout records the £215.88 initial commitment',async()=>{
   const h=harness([true,false],1799);
