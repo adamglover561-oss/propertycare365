@@ -159,6 +159,10 @@ function checkoutUrl(property){
 let checkoutInProgress=false;
 async function acceptTermsAndCheckout(property){
   if(checkoutInProgress)return;
+  if(!["gas","lpg"].includes(String(property.heating_fuel||"").toLowerCase())){
+    alert("Oil boilers and other heating systems require a separate quotation; do not subscribe to the gas/LPG core plan.");
+    return;
+  }
   const plan=planForNextProperty();
   const amount=Number(plan?.monthly_price_pence);
   const url=checkoutUrl(property);
