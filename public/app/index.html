@@ -115,7 +115,7 @@ function partnerReferral(){
 }
 capturePartnerReferral();
 const el=id=>document.getElementById(id);
-let state={user:null,customer:null,properties:[],subscriptions:[],covers:[],plans:[],jobs:[],reports:[],billing:[]};
+let state={user:null,customer:null,properties:[],subscriptions:[],covers:[],plans:[],jobs:[],reports:[],billing:[],balances:[]};
 
 async function notifyOwner(event,id,extra={}){
   try{
@@ -141,7 +141,7 @@ el("signUpForm").addEventListener("submit",async e=>{e.preventDefault();hideMess
 el("logoutBtn").onclick=()=>supabase.auth.signOut();
 
 async function ensureCustomer(user){const {data:existing,error}=await supabase.from("customers").select("*").eq("user_id",user.id).maybeSingle();if(error)throw error;if(existing)return existing;const fullName=user.user_metadata?.full_name||user.email?.split("@")[0]||"Customer",phone=user.user_metadata?.phone||null;const {data,error:insertError}=await supabase.from("customers").insert({user_id:user.id,full_name:fullName,email:user.email,phone}).select().single();if(insertError){if(insertError.code!=="23505")throw insertError;const retry=await supabase.from("customers").select("*").eq("user_id",user.id).single();if(retry.error)throw retry.error;return retry.data;}void notifyOwner("customer_signup",data.id,partnerReferral());return data;}
-async function loadData(){state.customer=await ensureCustomer(state.user);const cid=state.customer.id;const [p,s,c,plans,j,r,b]=await Promise.all([supabase.from("properties").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("subscriptions").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("property_cover").select("*").order("created_at",{ascending:false}),supabase.from("plans").select("*").eq("active",true),supabase.from("jobs").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("reports").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("billing_records").select("*").eq("customer_id",cid).order("created_at",{ascending:false})]);for(const q of [p,s,c,plans,j,r,b])if(q.error)throw q.error;state.properties=p.data||[];state.subscriptions=s.data||[];state.covers=c.data||[];state.plans=plans.data||[];state.jobs=j.data||[];state.reports=r.data||[];state.billing=b.data||[];render();}
+async function loadData(){state.customer=await ensureCustomer(state.user);const cid=state.customer.id;const [p,s,c,plans,j,r,b,bals]=await Promise.all([supabase.from("properties").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("subscriptions").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("property_cover").select("*").order("created_at",{ascending:false}),supabase.from("plans").select("*").eq("active",true),supabase.from("jobs").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("reports").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("billing_records").select("*").eq("customer_id",cid).order("created_at",{ascending:false}),supabase.from("membership_callout_balances").select("*")]);for(const q of [p,s,c,plans,j,r,b,bals])if(q.error)throw q.error;state.properties=p.data||[];state.subscriptions=s.data||[];state.covers=c.data||[];state.plans=plans.data||[];state.jobs=j.data||[];state.reports=r.data||[];state.billing=b.data||[];state.balances=bals.data||[];render();}
 function coverFor(pid){for(const cover of state.covers.filter(x=>x.property_id===pid&&x.active)){const sub=state.subscriptions.find(s=>s.id===cover.subscription_id);if(sub&&["active","trialing","past_due"].includes(sub.status))return {cover,sub};}return null;}
 function coveredCount(){return state.properties.filter(p=>coverFor(p.id)).length;}
 function planForNextProperty(){
@@ -229,6 +229,8 @@ async function requestHeatingQuote(property){
 }
 function propertyCard(p){
   const cov=coverFor(p.id);
+  const balance=cov?state.balances.find(b=>b.cover_id===cov.cover.id):null;
+  const allowanceHtml=balance?'<div class="small" style="margin-top:9px"><strong>'+esc(balance.remaining_callouts)+' of '+esc(balance.annual_callouts_included)+' priority call-outs remaining</strong> · Membership year ends '+fmtDate(balance.membership_year_end)+'</div>':"";
   let action;
   if(cov) action=statusTag(cov.sub.status);
   else if(!eligibleForCoreMembership(p)){
@@ -238,7 +240,7 @@ function propertyCard(p){
     const price=plan?fmtMoney(plan.monthly_price_pence):"";
     action=plan?'<button class="btn primary startCoverBtn" data-id="'+esc(p.id)+'">Start '+esc(price)+'/mo · 12-month agreement</button>':'<span class="tag warn">Checkout unavailable</span>';
   }
-  return '<div class="item"><div class="row mobile-stack"><div><h4>'+esc(p.property_name||p.address_line1)+'</h4><div class="muted small">'+esc(p.address_line1)+", "+esc(p.town_city)+", "+esc(p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+" · "+esc((p.hot_water_system||"not_sure").replaceAll("_"," ")) + '</div></div><div>'+action+"</div></div></div>";
+  return '<div class="item"><div class="row mobile-stack"><div><h4>'+esc(p.property_name||p.address_line1)+'</h4><div class="muted small">'+esc(p.address_line1)+", "+esc(p.town_city)+", "+esc(p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+" · "+esc((p.hot_water_system||"not_sure").replaceAll("_"," ")) + '</div></div><div>'+action+"</div></div>"+allowanceHtml+"</div>";
 }
 function render(){el("statProperties").textContent=state.properties.length;el("statCovered").textContent=coveredCount();el("statJobs").textContent=state.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;const nextPlan=planForNextProperty();el("nextRateNote").textContent=nextPlan?"Your next property is "+fmtMoney(nextPlan.monthly_price_pence)+"/month for the first 12 months ("+fmtMoney(nextPlan.monthly_price_pence*12)+" total), then rolling monthly. Statutory cancellation rights apply.":"Each property has a 12-month initial agreement paid monthly, then rolling monthly.";const props=state.properties.length?state.properties.map(propertyCard).join(""):'<div class="empty">No properties yet. Add your first property to get started.</div>';el("homePropertyList").innerHTML=props;el("propertyList").innerHTML=props;document.querySelectorAll(".startCoverBtn").forEach(btn=>btn.onclick=()=>{const p=state.properties.find(x=>x.id===btn.dataset.id);if(p)acceptTermsAndCheckout(p);});document.querySelectorAll(".heatingQuoteBtn").forEach(btn=>btn.onclick=()=>{const p=state.properties.find(x=>x.id===btn.dataset.id);if(p)requestHeatingQuote(p);});el("urgentProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+"</option>").join("");el("jobProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+'</option>').join("");
   const coveredProps=state.properties.filter(p=>coverFor(p.id));
