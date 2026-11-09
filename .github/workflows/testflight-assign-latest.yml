@@ -1,0 +1,84 @@
+name: Assign latest iOS build to TestFlight group
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Assign latest processed build to external TestFlight testers
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          ruby <<'RUBY'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          require 'openssl'
+          require 'uri'
+
+          %w[ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY].each { |name| abort "Missing Apple secret #{name}" if ENV[name].to_s.empty? }
+          key = OpenSSL::PKey.read(ENV.fetch('ASC_PRIVATE_KEY'))
+          encode = ->(x) { Base64.urlsafe_encode64(JSON.generate(x), padding: false) }
+          now = Time.now.to_i
+          unsigned = [encode.call({alg: 'ES256', kid: ENV.fetch('ASC_KEY_ID'), typ: 'JWT'}), encode.call({iss: ENV.fetch('ASC_ISSUER_ID'), iat: now, exp: now + 900, aud: 'appstoreconnect-v1'})].join('.')
+          der = key.sign(OpenSSL::Digest::SHA256.new, unsigned)
+          signature = OpenSSL::ASN1.decode(der).value.map { |i| [i.value.to_i.to_s(16).rjust(64, '0')].pack('H*') }.join
+          token = [unsigned, Base64.urlsafe_encode64(signature, padding: false)].join('.')
+
+          def apple(method, path, query, payload, token)
+            uri = URI('https://api.appstoreconnect.apple.com' + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            request = method == 'POST' ? Net::HTTP::Post.new(uri) : Net::HTTP::Get.new(uri)
+            request['Authorization'] = 'Bearer ' + token
+            request['Accept'] = 'application/json'
+            if payload
+              request['Content-Type'] = 'application/json'
+              request.body = JSON.generate(payload)
+            end
+            response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 15, read_timeout: 25) { |http| http.request(request) }
+            unless response.code.to_i.between?(200, 299)
+              issues = begin
+                JSON.parse(response.body).fetch('errors', []).map { |e| [e['title'],e['detail']].compact.join(': ') }.join('; ')
+              rescue StandardError
+                'No details'
+              end
+              raise "Apple API #{path}: HTTP #{response.code}: #{issues}"
+            end
+            response.body.to_s.empty? ? {} : JSON.parse(response.body)
+          end
+
+          bundle = 'uk.co.propertycare360.app'
+          app = apple('GET', '/v1/apps', {'filter[bundleId]' => bundle, 'limit' => '10'}, nil, token).fetch('data').find { |x| x.dig('attributes','bundleId') == bundle }
+          abort 'Apple app record not found' unless app
+          app_id = app.fetch('id')
+          groups = apple('GET', "/v1/apps/#{app_id}/betaGroups", {'limit' => '30'}, nil, token).fetch('data')
+          group = groups.find { |g| g.dig('attributes','name') == 'External Field Test' && g.dig('attributes','isInternalGroup') == false }
+          abort 'External testing group missing' unless group
+          group_id = group.fetch('id')
+
+          builds = apple('GET', '/v1/builds', {'filter[app]' => app_id,'sort' => '-uploadedDate','limit' => '20'}, nil, token).fetch('data')
+          abort 'No uploaded iOS build found' if builds.empty?
+          latest = builds.first
+          version = latest.dig('attributes','version') || '?'
+          status = latest.dig('attributes','processingState') || 'unknown'
+          puts "Most recent build number #{version}; processing=#{status}"
+          abort 'Latest build is not yet valid; run again after Apple finishes processing' unless status == 'VALID'
+
+          assigned = apple('GET', "/v1/betaGroups/#{group_id}/relationships/builds", {'limit' => '100'}, nil, token).fetch('data')
+          if assigned.any? { |x| x.fetch('id') == latest.fetch('id') }
+            puts "Build #{version} already assigned to External Field Test"
+          else
+            apple('POST', "/v1/betaGroups/#{group_id}/relationships/builds", {}, {data: [{type: 'builds', id: latest.fetch('id')}]}, token)
+            puts "Assigned build #{version} to External Field Test"
+          end
+          detail = apple('GET', "/v1/builds/#{latest.fetch('id')}/buildBetaDetail", {}, nil, token)
+          puts "External TestFlight state: #{detail.dig('data', 'attributes', 'externalBuildState') || 'unknown'}"
+          RUBY
