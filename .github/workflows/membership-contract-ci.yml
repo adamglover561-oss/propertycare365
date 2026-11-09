@@ -7,12 +7,16 @@ on:
       - public/**
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
+      - tests/webhook.test.cjs
+      - supabase/functions/stripe-webhook/index.ts
       - .github/workflows/membership-contract-ci.yml
   pull_request:
     paths:
       - public/**
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
+      - tests/webhook.test.cjs
+      - supabase/functions/stripe-webhook/index.ts
 
 jobs:
   contract:
