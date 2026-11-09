@@ -43,7 +43,7 @@
 
 <section id="propertiesPage" class="hidden">
 <div class="card"><div class="row"><h3 class="section-title">Properties</h3><button id="showAddProperty" class="btn primary">+ Add</button></div><div id="propertyList" class="list"></div></div>
-<form id="propertyForm" class="card stack hidden"><div class="row"><h3 class="section-title">Add property</h3><button type="button" id="cancelProperty" class="btn secondary">Cancel</button></div><div class="grid"><div class="field"><label for="propertyName">Property name</label><input id="propertyName" placeholder="e.g. Sea View Cottage"></div><div class="field"><label for="propertyFuel">Heating fuel</label><select id="propertyFuel"><option value="gas">Gas</option><option value="lpg">LPG</option><option value="oil">Oil</option><option value="electric">Electric</option><option value="other">Other</option></select></div></div><div class="field"><label for="hotWaterSystem">Hot-water system</label><select id="hotWaterSystem"><option value="not_sure">Not sure</option><option value="unvented">Unvented cylinder</option><option value="vented">Vented cylinder</option><option value="combi">Combi boiler</option><option value="sunamp">Sunamp heat battery</option><option value="other">Other</option></select><div class="muted small">You can record gas, LPG, oil, electric and Sunamp properties. Only eligible gas/LPG properties can purchase this core membership online; for oil, electric or other systems, request a separate quotation. One annual service of a suitable gas/LPG boiler and visual plumbing check are included for eligible new memberships; other servicing and specialist repairs are charged separately.</div></div><div class="field"><label for="address1">Address line 1</label><input id="address1" required></div><div class="grid"><div class="field"><label for="town">Town / city</label><input id="town" required></div><div class="field"><label for="postcode">Postcode</label><input id="postcode" required></div></div><div class="field"><label for="accessNotes">Access notes</label><textarea id="accessNotes" placeholder="Key safe, changeover contact, parking, etc."></textarea></div><button class="btn primary" type="submit">Save property</button></form>
+<form id="propertyForm" class="card stack hidden"><div class="row"><h3 class="section-title">Add property</h3><button type="button" id="cancelProperty" class="btn secondary">Cancel</button></div><div class="grid"><div class="field"><label for="propertyName">Property name</label><input id="propertyName" placeholder="e.g. Sea View Cottage"></div><div class="field"><label for="propertyFuel">Heating fuel</label><select id="propertyFuel"><option value="gas">Gas</option><option value="lpg">LPG</option><option value="oil">Oil</option><option value="electric">Electric</option><option value="other">Other</option></select></div></div><div class="field"><label for="hotWaterSystem">Hot-water system</label><select id="hotWaterSystem"><option value="not_sure">Not sure</option><option value="unvented">Unvented cylinder</option><option value="vented">Vented cylinder</option><option value="combi">Combi boiler</option><option value="sunamp">Sunamp heat battery</option><option value="other">Other</option></select><div class="muted small">You can record gas, LPG, oil, electric and Sunamp properties. Only eligible gas/LPG properties can purchase this core membership online. For oil, electric or other systems, save the property and select Request heating cover quote. You will not be charged to request a quotation. One annual service of a suitable gas/LPG boiler and visual plumbing check are included for eligible new memberships; other servicing and specialist repairs are charged separately.</div></div><div class="field"><label for="address1">Address line 1</label><input id="address1" required></div><div class="grid"><div class="field"><label for="town">Town / city</label><input id="town" required></div><div class="field"><label for="postcode">Postcode</label><input id="postcode" required></div></div><div class="field"><label for="accessNotes">Access notes</label><textarea id="accessNotes" placeholder="Key safe, changeover contact, parking, etc."></textarea></div><button class="btn primary" type="submit">Save property</button></form>
 </section>
 
 <section id="jobsPage" class="hidden">
@@ -156,11 +156,12 @@ function checkoutUrl(property){
   if(state.user.email)u.searchParams.set("locked_prefilled_email",state.user.email);
   return u.toString();
 }
+function eligibleForCoreMembership(property){return ["gas","lpg"].includes(String(property?.heating_fuel||"").toLowerCase());}
 let checkoutInProgress=false;
 async function acceptTermsAndCheckout(property){
   if(checkoutInProgress)return;
-  if(!["gas","lpg"].includes(String(property.heating_fuel||"").toLowerCase())){
-    alert("Oil boilers and other heating systems require a separate quotation; do not subscribe to the gas/LPG core plan.");
+  if(!eligibleForCoreMembership(property)){
+    alert("This property is not eligible for the online gas/LPG plan. Use Request heating cover quote on the Properties tab; no payment is required to request a quote.");
     return;
   }
   const plan=planForNextProperty();
@@ -207,18 +208,39 @@ async function acceptTermsAndCheckout(property){
   }finally{checkoutInProgress=false;}
 }
 async function requestMultiProperty(property){const {error}=await supabase.from("jobs").insert({property_id:property.id,customer_id:state.customer.id,job_type:"other",title:"Multi-property Property Care 360 quote",description:"Please set up the Property Care 360 core rate for this additional property.",status:"requested",labour_covered:false});if(error)return alert(error.message);alert("Request sent for the additional-property setup.");await loadData();}
+const HEATING_QUOTE_TITLE="Property Care 360 heating cover quotation";
+function heatingQuoteRequested(property){return state.jobs.some(job=>job.property_id===property.id&&job.title===HEATING_QUOTE_TITLE&&["requested","pending"].includes(job.status));}
+async function requestHeatingQuote(property){
+  if(!property?.id||!state.customer?.id)return alert("We could not identify this property. Please sign in again.");
+  if(eligibleForCoreMembership(property))return alert("Gas and LPG properties can use the standard membership checkout.");
+  if(heatingQuoteRequested(property))return alert("You have already requested a heating cover quote for this property. We will contact you.");
+  const fuel=String(property.heating_fuel||"other").toUpperCase();
+  const system=String(property.hot_water_system||"not_sure").replaceAll("_"," ");
+  const {data,error}=await supabase.from("jobs").insert({
+    property_id:property.id,customer_id:state.customer.id,job_type:"other",
+    title:HEATING_QUOTE_TITLE,
+    description:"Customer requests an individual Property Care 360 membership quotation. Heating fuel: "+fuel+". Hot-water system: "+system+". Standard gas/LPG online cover was not purchased. Please confirm eligibility, services and price before any payment.",
+    status:"requested",labour_covered:false,booking_source:"customer"
+  }).select("id").single();
+  if(error)return alert("The quote request could not be saved. Please call 07904 404426 instead. "+error.message);
+  void notifyOwner("booking_requested",data.id);
+  await loadData();
+  alert("Quote request saved. We will contact you about heating cover and pricing. No membership or payment has been started.");
+}
 function propertyCard(p){
   const cov=coverFor(p.id);
   let action;
   if(cov) action=statusTag(cov.sub.status);
-  else{
+  else if(!eligibleForCoreMembership(p)){
+    action=heatingQuoteRequested(p)?'<span class="tag warn">Heating quote requested</span>':'<button type="button" class="btn secondary heatingQuoteBtn" data-id="'+esc(p.id)+'">Request heating cover quote</button>';
+  }else{
     const plan=planForNextProperty();
     const price=plan?fmtMoney(plan.monthly_price_pence):"";
     action=plan?'<button class="btn primary startCoverBtn" data-id="'+esc(p.id)+'">Start '+esc(price)+'/mo · 12-month agreement</button>':'<span class="tag warn">Checkout unavailable</span>';
   }
   return '<div class="item"><div class="row mobile-stack"><div><h4>'+esc(p.property_name||p.address_line1)+'</h4><div class="muted small">'+esc(p.address_line1)+", "+esc(p.town_city)+", "+esc(p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+" · "+esc((p.hot_water_system||"not_sure").replaceAll("_"," ")) + '</div></div><div>'+action+"</div></div></div>";
 }
-function render(){el("statProperties").textContent=state.properties.length;el("statCovered").textContent=coveredCount();el("statJobs").textContent=state.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;const nextPlan=planForNextProperty();el("nextRateNote").textContent=nextPlan?"Your next property is "+fmtMoney(nextPlan.monthly_price_pence)+"/month for the first 12 months ("+fmtMoney(nextPlan.monthly_price_pence*12)+" total), then rolling monthly. Statutory cancellation rights apply.":"Each property has a 12-month initial agreement paid monthly, then rolling monthly.";const props=state.properties.length?state.properties.map(propertyCard).join(""):'<div class="empty">No properties yet. Add your first property to get started.</div>';el("homePropertyList").innerHTML=props;el("propertyList").innerHTML=props;document.querySelectorAll(".startCoverBtn").forEach(btn=>btn.onclick=()=>{const p=state.properties.find(x=>x.id===btn.dataset.id);if(p)acceptTermsAndCheckout(p);});el("urgentProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+"</option>").join("");el("jobProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+'</option>').join("");
+function render(){el("statProperties").textContent=state.properties.length;el("statCovered").textContent=coveredCount();el("statJobs").textContent=state.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;const nextPlan=planForNextProperty();el("nextRateNote").textContent=nextPlan?"Your next property is "+fmtMoney(nextPlan.monthly_price_pence)+"/month for the first 12 months ("+fmtMoney(nextPlan.monthly_price_pence*12)+" total), then rolling monthly. Statutory cancellation rights apply.":"Each property has a 12-month initial agreement paid monthly, then rolling monthly.";const props=state.properties.length?state.properties.map(propertyCard).join(""):'<div class="empty">No properties yet. Add your first property to get started.</div>';el("homePropertyList").innerHTML=props;el("propertyList").innerHTML=props;document.querySelectorAll(".startCoverBtn").forEach(btn=>btn.onclick=()=>{const p=state.properties.find(x=>x.id===btn.dataset.id);if(p)acceptTermsAndCheckout(p);});document.querySelectorAll(".heatingQuoteBtn").forEach(btn=>btn.onclick=()=>{const p=state.properties.find(x=>x.id===btn.dataset.id);if(p)requestHeatingQuote(p);});el("urgentProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+"</option>").join("");el("jobProperty").innerHTML=state.properties.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+'</option>').join("");
   const coveredProps=state.properties.filter(p=>coverFor(p.id));
   el("bookingProperty").innerHTML=coveredProps.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.property_name||p.address_line1)+'</option>').join("");
   el("bookingForm").querySelector('button[type="submit"]').disabled=coveredProps.length===0;
