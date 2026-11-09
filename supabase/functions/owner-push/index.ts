@@ -56,6 +56,107 @@ async function sendOwnerPush(payload: Record<string, unknown>) {
   return sent;
 }
 
+
+/**
+ * Owner email is an independent delivery channel. A push notification can have
+ * zero subscribers, so its notification log must never suppress an email.
+ * Replayed requests use a stable Resend idempotency key and a separate log key.
+ */
+async function sendOwnerEmailForJob(event: string, jobId: string): Promise<boolean> {
+  const notificationKey = "owner-email:" + event + ":" + jobId;
+  const { data: existing, error: existingError } = await admin
+    .from("notification_log").select("notification_key").eq("notification_key", notificationKey).maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return false;
+
+  const { data: job, error: jobError } = await admin.from("jobs")
+    .select("id,customer_id,property_id,title,description,created_at,booking_source")
+    .eq("id", jobId).maybeSingle();
+  if (jobError) throw jobError;
+  if (!job || job.booking_source !== "customer") throw new Error("Job missing or not customer-submitted");
+
+  const [customerResult, propertyResult] = await Promise.all([
+    admin.from("customers").select("id,full_name,email,phone").eq("id", job.customer_id).maybeSingle(),
+    admin.from("properties").select("id,address_line1,address_line2,town_city,postcode")
+      .eq("id", job.property_id).maybeSingle()
+  ]);
+  if (customerResult.error) throw customerResult.error;
+  if (propertyResult.error) throw propertyResult.error;
+  const customer = customerResult.data;
+  const property = propertyResult.data;
+  if (!customer || !property) throw new Error("Owner alert missing customer or property");
+
+  const keyFromEnv = Deno.env.get("RESEND_API_KEY");
+  const { data: keyRow, error: keyError } = keyFromEnv ? { data: null, error: null } :
+    await admin.from("integration_secrets").select("secret_value")
+      .eq("name", "resend_transactional_api_key").maybeSingle();
+  if (keyError) throw keyError;
+  const apiKey = keyFromEnv || keyRow?.secret_value;
+  if (!apiKey) throw new Error("Owner email Resend credential not configured");
+
+  const urgent = event === "breakdown_requested" && String(job.title || "").startsWith("URGENT CALL-OUT");
+  const label = urgent ? "URGENT CALL-OUT" : event === "booking_requested" ? "NEW APPOINTMENT REQUEST" : "NEW BREAKDOWN REQUEST";
+  const address = [property.address_line1, property.address_line2, property.town_city, property.postcode]
+    .filter(Boolean).join(", ");
+  const contactFromRequest = String(job.description || "").match(/^Contact phone:\\s*(.+)$/m)?.[1]?.trim();
+  const content = [
+    "Property Care 360 — " + label,
+    "",
+    "Customer: " + String(customer.full_name || "Unknown"),
+    "Customer email: " + String(customer.email || "Not provided"),
+    "Contact phone: " + String(contactFromRequest || customer.phone || "Not provided"),
+    "Property: " + address,
+    "Request: " + String(job.title || ""),
+    "Submitted: " + String(job.created_at || ""),
+    "",
+    "Details:",
+    String(job.description || "No additional details."),
+    "",
+    "Status: Awaiting your response",
+    "Review: https://propertycare360.co.uk/admin/",
+    "Job ID: " + jobId,
+    "",
+    "For urgent safety issues, contact the customer promptly. This email is a notification, not confirmation of an attended visit."
+  ].join("\\n");
+
+  const requestHeaders = {
+    "Authorization": "Bearer " + apiKey,
+    "Content-Type": "application/json",
+    "Idempotency-Key": "pc360-owner-" + event + "-" + jobId
+  };
+  const requestBody = JSON.stringify({
+    from: "Property Care 360 <membership@propertycare360.co.uk>",
+    to: ["adamglover561@gmail.com"],
+    subject: label + " — Property Care 360",
+    text: content
+  });
+  let sent = false;
+  let lastStatus = "unavailable";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST", headers: requestHeaders, body: requestBody
+      });
+      if (response.ok) { sent = true; break; }
+      lastStatus = "HTTP " + response.status;
+      if (response.status !== 429 && response.status < 500) break;
+    } catch (error) {
+      lastStatus = error instanceof Error ? error.message : "network error";
+    }
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+  }
+  if (!sent) throw new Error("Owner alert email failed: " + lastStatus);
+
+  const { error: logError } = await admin.from("notification_log").insert({
+    notification_key: notificationKey,
+    notification_type: "owner_email_" + event,
+    customer_id: job.customer_id,
+    job_id: jobId
+  });
+  if (logError && logError.code !== "23505") throw logError;
+  return true;
+}
+
 async function getUserFromBearer(req: Request) {
   const header = req.headers.get("Authorization") ?? "";
   if (!header.startsWith("Bearer ")) return { header, token: "", user: null };
@@ -163,14 +264,19 @@ async function handleRequest(req: Request) {
       return new Response("Unsupported customer event", { status: 400 });
     }
 
+    // Email is independent of push deduplication. Previously a push with zero
+    // registered devices still counted as sent, silently losing the alert.
+    const emailSent = jobId && (event === "breakdown_requested" || event === "booking_requested")
+      ? await sendOwnerEmailForJob(event, jobId) : false;
+
     const fresh = await markOnce("owner-push:" + event + ":" + id, "owner_push_" + event, customer.id, jobId);
-    if (!fresh) return Response.json({ ok: true, duplicate: true });
+    if (!fresh) return Response.json({ ok: true, duplicate: true, emailSent });
 
     const sent = await sendOwnerPush({ title, body: pushBody, url: "/admin/" });
-    return Response.json({ ok: true, sent });
+    return Response.json({ ok: true, sent, emailSent });
   } catch (err: any) {
     console.error(err);
-    return new Response("Push processing failed", { status: 500 });
+    return new Response("Owner alert processing failed", { status: 500 });
   }
 }
 
