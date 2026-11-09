@@ -2,6 +2,16 @@ name: Assign latest iOS build to TestFlight group
 
 on:
   workflow_dispatch:
+    inputs:
+      build_number:
+        description: Target Apple TestFlight build number
+        required: true
+        type: string
+      declare_exempt_encryption:
+        description: Confirm the app and its libraries use only exempt encryption
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +26,8 @@ jobs:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          EXPECTED_BUILD_NUMBER: ${{ inputs.build_number }}
+          DECLARE_EXEMPT_ENCRYPTION: ${{ inputs.declare_exempt_encryption }}
         run: |
           ruby <<'RUBY'
           require 'base64'
@@ -36,7 +48,11 @@ jobs:
           def apple(method, path, query, payload, token)
             uri = URI('https://api.appstoreconnect.apple.com' + path)
             uri.query = URI.encode_www_form(query) unless query.empty?
-            request = method == 'POST' ? Net::HTTP::Post.new(uri) : Net::HTTP::Get.new(uri)
+            request = case method
+            when 'POST' then Net::HTTP::Post.new(uri)
+            when 'PATCH' then Net::HTTP::Patch.new(uri)
+            else Net::HTTP::Get.new(uri)
+            end
             request['Authorization'] = 'Bearer ' + token
             request['Accept'] = 'application/json'
             if payload
@@ -71,6 +87,17 @@ jobs:
           status = latest.dig('attributes','processingState') || 'unknown'
           puts "Most recent build number #{version}; processing=#{status}"
           abort 'Latest build is not yet valid; run again after Apple finishes processing' unless status == 'VALID'
+          expected = ENV.fetch('EXPECTED_BUILD_NUMBER').strip
+          abort "Expected build #{expected}, but latest is #{version}; refusing to change the wrong build" unless version.to_s == expected
+          detail = apple('GET', "/v1/builds/#{latest.fetch('id')}/buildBetaDetail", {}, nil, token)
+          external_state = detail.dig('data', 'attributes', 'externalBuildState')
+          puts "External state before assignment: #{external_state || 'unknown'}"
+          if external_state == 'MISSING_EXPORT_COMPLIANCE'
+            abort 'App encryption classification was not confirmed' unless ENV.fetch('DECLARE_EXEMPT_ENCRYPTION', 'false') == 'true'
+            apple('PATCH', "/v1/builds/#{latest.fetch('id')}", {}, {data: {type: 'builds', id: latest.fetch('id'), attributes: {usesNonExemptEncryption: false}}}, token)
+            detail = apple('GET', "/v1/builds/#{latest.fetch('id')}/buildBetaDetail", {}, nil, token)
+            puts "External state after exempt-encryption declaration: #{detail.dig('data', 'attributes', 'externalBuildState') || 'unknown'}"
+          end
 
           assigned = apple('GET', "/v1/betaGroups/#{group_id}/relationships/builds", {'limit' => '100'}, nil, token).fetch('data')
           if assigned.any? { |x| x.fetch('id') == latest.fetch('id') }
