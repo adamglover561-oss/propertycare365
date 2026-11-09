@@ -40,6 +40,10 @@ jobs:
         run: |
           pod --version
           npx cap sync ios
+      - name: Declare exempt HTTPS encryption in packaged iOS app
+        run: |
+          plutil -replace ITSAppUsesNonExemptEncryption -bool NO ios/App/App/Info.plist
+          plutil -extract ITSAppUsesNonExemptEncryption raw ios/App/App/Info.plist | grep -qx NO
       - name: Install App Store Connect API key
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
