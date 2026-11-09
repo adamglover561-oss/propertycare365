@@ -1,0 +1,107 @@
+name: TestFlight tester invitation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  invite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify tester and send an invitation if needed
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          TESTER_EMAIL: ${{ secrets.PC360_TESTFLIGHT_TESTER_EMAIL }}
+        run: |
+          ruby <<'RUBY'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          require 'openssl'
+          require 'uri'
+
+          %w[ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY TESTER_EMAIL].each { |key| abort "Missing secret #{key}" if ENV[key].to_s.empty? }
+          target_email = ENV.fetch('TESTER_EMAIL').strip.downcase
+          abort 'Invalid tester email' unless target_email.match?(/\A[^@\s]+@[^@\s]+\.[^@\s]+\z/)
+          key_id = ENV.fetch('ASC_KEY_ID')
+          issuer_id = ENV.fetch('ASC_ISSUER_ID')
+          key = OpenSSL::PKey.read(ENV.fetch('ASC_PRIVATE_KEY'))
+          encode = ->(x) { Base64.urlsafe_encode64(JSON.generate(x), padding: false) }
+          now = Time.now.to_i
+          unsigned = [encode.call({alg: 'ES256', kid: key_id, typ: 'JWT'}), encode.call({iss: issuer_id, iat: now, exp: now + 900, aud: 'appstoreconnect-v1'})].join('.')
+          der = key.sign(OpenSSL::Digest::SHA256.new, unsigned)
+          sig = OpenSSL::ASN1.decode(der).value.map { |i| [i.value.to_i.to_s(16).rjust(64, '0')].pack('H*') }.join
+          token = [unsigned, Base64.urlsafe_encode64(sig, padding: false)].join('.')
+
+          def apple(method, path, query, payload, token)
+            uri = URI('https://api.appstoreconnect.apple.com' + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            request = method == 'POST' ? Net::HTTP::Post.new(uri) : Net::HTTP::Get.new(uri)
+            request['Authorization'] = 'Bearer ' + token
+            request['Accept'] = 'application/json'
+            if payload
+              request['Content-Type'] = 'application/json'
+              request.body = JSON.generate(payload)
+            end
+            response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 15, read_timeout: 25) { |http| http.request(request) }
+            unless response.code.to_i.between?(200, 299)
+              problem = begin
+                JSON.parse(response.body).fetch('errors', []).map { |e| e['title'] }.join(', ')
+              rescue StandardError
+                'No details'
+              end
+              raise "Apple API #{path}: HTTP #{response.code}: #{problem}"
+            end
+            response.body.to_s.empty? ? {} : JSON.parse(response.body)
+          end
+
+          bundle_id = 'uk.co.propertycare360.app'
+          apps = apple('GET', '/v1/apps', {'filter[bundleId]' => bundle_id}, nil, token).fetch('data')
+          app = apps.find { |a| a.dig('attributes', 'bundleId') == bundle_id }
+          abort 'App missing in App Store Connect' unless app
+          app_id = app.fetch('id')
+          groups = apple('GET', "/v1/apps/#{app_id}/betaGroups", {'limit' => '100'}, nil, token).fetch('data')
+          group = groups.find { |g| g.dig('attributes', 'name') == 'External Field Test' && g.dig('attributes', 'isInternalGroup') == false }
+          abort 'External Field Test group not found' unless group
+          group_id = group.fetch('id')
+          builds = apple('GET', "/v1/betaGroups/#{group_id}/builds", {'limit' => '10'}, nil, token).fetch('data')
+          abort 'No assigned build for external testing' if builds.empty?
+          states = builds.map do |b|
+            detail = apple('GET', "/v1/builds/#{b.fetch('id')}/buildBetaDetail", {}, nil, token)
+            detail.dig('data', 'attributes', 'externalBuildState')
+          end
+          puts "External assigned build states: #{states.join(', ')}"
+          abort 'No build currently approved for external testing' unless states.include?('IN_BETA_TESTING')
+
+          testers = apple('GET', "/v1/betaGroups/#{group_id}/betaTesters", {'limit' => '200'}, nil, token).fetch('data')
+          tester = testers.find { |t| t.dig('attributes', 'email').to_s.downcase == target_email }
+
+          if tester
+            state = tester.dig('attributes', 'state') || 'unknown'
+            puts "Target tester already in group, state=#{state}"
+          else
+            existing = apple('GET', '/v1/betaTesters', {'filter[email]' => target_email, 'limit' => '20'}, nil, token).fetch('data')
+            tester = existing.find { |t| t.dig('attributes', 'email').to_s.downcase == target_email }
+            if tester
+              apple('POST', "/v1/betaGroups/#{group_id}/relationships/betaTesters", {}, {data: [{type: 'betaTesters', id: tester.fetch('id')}]}, token)
+              puts 'Existing Apple tester added to external test group'
+            else
+              created = apple('POST', '/v1/betaTesters', {}, {data: {type: 'betaTesters', attributes: {email: target_email}, relationships: {betaGroups: {data: [{type: 'betaGroups', id: group_id}]}}}}, token)
+              tester = created.fetch('data')
+              puts 'New tester added to external test group; Apple normally sends an invitation'
+            end
+            state = tester.dig('attributes', 'state') || 'unknown'
+          end
+
+          if state != 'ACCEPTED' && state != 'INSTALLED'
+            apple('POST', '/v1/betaTesterInvitations', {}, {data: {type: 'betaTesterInvitations', relationships: {betaTester: {data: {type: 'betaTesters', id: tester.fetch('id')}}, app: {data: {type: 'apps', id: app_id}}}}}, token)
+            puts 'Apple accepted invitation send/resend request'
+          else
+            puts 'Tester has already accepted; no repeat invitation needed'
+          end
+          RUBY
