@@ -138,3 +138,20 @@ test("yearly boiler service and plumbing check share one booking, non-gas checko
   assert.ok(app.includes("Only eligible gas/LPG properties can purchase this core membership online"));
   assert.ok(app.includes("Annual gas/LPG boiler service and plumbing check request"));
 });
+
+
+test("iPhone navigation keeps all six tabs horizontally swipeable without forced zoom",()=>{
+  assert.match(app,/<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">/);
+  assert.match(app,/\.navin\{[^}]*display:flex;[^}]*overflow-x:auto;[^}]*touch-action:pan-x;/);
+  assert.match(app,/\.nav button\{[^}]*min-width:76px;[^}]*touch-action:manipulation/);
+  assert.doesNotMatch(app,/\.navin\{[^}]*grid-template-columns:repeat\(6,1fr\)/);
+  for(const page of ["home","properties","bookings","jobs","reports","billing"]){
+    assert.ok(app.includes('data-page="'+page+'"'),"Missing navigation tab: "+page);
+  }
+});
+
+test("customer app only advertises the current core and additional-property prices",()=>{
+  assert.match(app,/<strong>£19\.99\/mo<\/strong>/);
+  assert.match(app,/<strong>£17\.99\/mo<\/strong>/);
+  assert.doesNotMatch(app,/<strong>£(?:49|44|39)\/mo<\/strong>/);
+});
