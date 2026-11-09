@@ -67,6 +67,7 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_STYLE=Automatic \
             PRODUCT_BUNDLE_IDENTIFIER="uk.co.propertycare360.app" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             archive
       - name: Export signed IPA
         env:
