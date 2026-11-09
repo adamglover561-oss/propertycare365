@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const {stripTypeScriptTypes} = require('node:module');
+const {webcrypto} = require('node:crypto');
 
 const SOURCE = fs.readFileSync('supabase/functions/stripe-webhook/index.ts','utf8')
   .replace(/^import .*;$/m,'');
@@ -14,12 +15,17 @@ function fixture({termsVersion='1.7', failFirstSend=false}={}) {
     subscriptions:[{id:'sub-row-test',stripe_subscription_id:'sub_stripe_test',customer_id:'customer-test',status:'pending',current_period_start:null,current_period_end:null}],
     property_cover:[{id:'cover-test',subscription_id:'sub-row-test',property_id:'property-test',active:true,membership_started_at:null,annual_callouts_included:null}],
     membership_checkout_consents:[{id:'consent-test',customer_id:'customer-test',property_id:'property-test',terms_version:termsVersion,monthly_price_pence:1999,accepted_at:'2026-11-09T10:59:00Z'}],
-    integration_secrets:[{name:'resend_transactional_api_key',secret_value:'fake-isolated-resend-token'}],
+    integration_secrets:[
+      {name:'resend_transactional_api_key',secret_value:'fake-isolated-resend-token'},
+      {name:'stripe_webhook_signing_secret',secret_value:'fake-webhook-signing-secret'},
+    ],
+    stripe_events:[],
     billing_records:[],
     notification_log:[],
   };
   const sends = [];
   let failuresRemaining=failFirstSend?1:0;
+  let httpHandler;
   function query(table) {
     if(!(table in rows))throw Error('Unexpected table: '+table);
     let predicates=[],order=null,limit=null,operation='select',patch=null;
@@ -43,6 +49,9 @@ function fixture({termsVersion='1.7', failFirstSend=false}={}) {
         if(limit!==null) selected=selected.slice(0,limit);
         if(operation==='update') selected.forEach(row=>Object.assign(row,patch));
         if(operation==='insert'){
+          if(table==='stripe_events'&&tableRows.some(row=>row.event_id===patch.event_id)){
+            return Promise.resolve({data:[],error:{code:'23505',message:'Duplicate event'}}).then(resolve,reject);
+          }
           const inserted=Array.isArray(patch)?patch:[patch];
           selected=inserted.map(row=>({id:'id-'+table+'-'+(tableRows.length+1),...row}));
           tableRows.push(...selected);
@@ -55,8 +64,9 @@ function fixture({termsVersion='1.7', failFirstSend=false}={}) {
   const env={SUPABASE_URL:'https://example.invalid',SUPABASE_SERVICE_ROLE_KEY:'fake-supabase-test-key'};
   const context=vm.createContext({
     createClient:()=>({from:query}),
-    Deno:{env:{get:key=>env[key]},serve:()=>{}},
+    Deno:{env:{get:key=>env[key]},serve:handler=>{httpHandler=handler}},
     fetch:async (url,options)=>{
+      if(url==='https://example.invalid/functions/v1/owner-push')return {ok:true,status:200,text:async()=>''};
       assert.equal(url,'https://api.resend.com/emails','No other network access allowed');
       assert.equal(options.method,'POST');
       assert.equal(options.headers.Authorization,'Bearer fake-isolated-resend-token');
@@ -64,7 +74,7 @@ function fixture({termsVersion='1.7', failFirstSend=false}={}) {
       if(failuresRemaining-->0) return {ok:false,status:503,text:async()=>''};
       return {ok:true,status:200,json:async()=>({id:'fake-email-id'})};
     },
-    console,TextEncoder,Response,Date,
+    console,TextEncoder,Request,Response,Date,crypto:webcrypto,
   });
   vm.runInContext(stripTypeScriptTypes(SOURCE),context);
   const invoice={
@@ -74,7 +84,7 @@ function fixture({termsVersion='1.7', failFirstSend=false}={}) {
     amount_paid:1999,currency:'gbp',
     lines:{data:[{period:{start:1794222040,end:1796814040},parent:{subscription_item_details:{subscription:'sub_stripe_test'}}}]},
   };
-  return {rows,sends,invoice,processInvoice:context.processInvoice};
+  return {rows,sends,invoice,processInvoice:context.processInvoice,handler:()=>httpHandler};
 }
 
 test('first paid v1.7 Stripe invoice automatically triggers exactly one welcome email and five call-outs',async()=>{
@@ -128,4 +138,28 @@ test('historical membership terms do not receive incorrect v1.7 confirmation',as
   assert.equal(f.sends.length,0);
   assert.equal(f.rows.notification_log.length,0);
   assert.equal(f.rows.property_cover[0].annual_callouts_included,null);
+});
+
+test('signed Stripe invoice.paid HTTP webhook runs the complete onboarding chain and deduplicates replay',async()=>{
+  const f=fixture();
+  const event={id:'evt_isolated_paid_test',type:'invoice.paid',data:{object:f.invoice}};
+  const body=JSON.stringify(event),timestamp=String(Math.floor(Date.now()/1000));
+  const key=await webcrypto.subtle.importKey('raw',new TextEncoder().encode('fake-webhook-signing-secret'),
+    {name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const digest=Buffer.from(await webcrypto.subtle.sign('HMAC',key,
+    new TextEncoder().encode(timestamp+'.'+body))).toString('hex');
+  const makeRequest=()=>new Request('https://example.invalid/functions/v1/stripe-webhook',{
+    method:'POST',headers:{'stripe-signature':'t='+timestamp+',v1='+digest,'content-type':'application/json'},body
+  });
+  const response=await f.handler()(makeRequest());
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).ok,true);
+  assert.equal(f.sends.length,1,'Successful signed first invoice must trigger a confirmation');
+  assert.equal(f.rows.property_cover[0].annual_callouts_included,5);
+  assert.equal(f.rows.notification_log.length,1);
+  const replay=await f.handler()(makeRequest());
+  assert.equal(replay.status,200);
+  assert.equal((await replay.json()).duplicate,true);
+  assert.equal(f.sends.length,1,'Duplicate Stripe event must not send twice');
+  assert.equal(f.rows.billing_records.length,1,'Duplicate Stripe event must not double bill');
 });
