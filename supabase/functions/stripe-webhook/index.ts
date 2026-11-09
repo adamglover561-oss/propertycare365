@@ -201,6 +201,102 @@ async function processCheckoutCompleted(session: Record<string, any>) {
   }
 }
 
+
+function htmlSafe(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" } as Record<string,string>)[c]);
+}
+
+// First successful payment only; never send a new 1.7 agreement to an older-plan customer.
+// A unique database notification key and Resend's idempotency key protect Stripe retries.
+async function sendMembershipConfirmation(invoice: Record<string,any>, customerId: string, propertyId: string, monthlyPence: number) {
+  const notificationKey = "membership-confirmation:" + String(invoice.id);
+  const { data: previous, error: existingError } = await supabase.from("notification_log")
+    .select("notification_key").eq("notification_key", notificationKey).maybeSingle();
+  if (existingError) throw existingError;
+  if (previous) return;
+
+  const [{ data: customer, error: customerError }, { data: property, error: propertyError }] = await Promise.all([
+    supabase.from("customers").select("full_name,email").eq("id", customerId).single(),
+    supabase.from("properties").select("property_name,address_line1,town_city,heating_fuel").eq("id", propertyId).single()
+  ]);
+  if (customerError) throw customerError;
+  if (propertyError) throw propertyError;
+  if (!customer?.email || !property) throw new Error("Confirmation missing recipient or property");
+
+  const keyFromEnv = Deno.env.get("RESEND_API_KEY");
+  const { data: keyRecord, error: keyError } = keyFromEnv ? {data:null,error:null} :
+    await supabase.from("integration_secrets").select("secret_value").eq("name","resend_transactional_api_key").maybeSingle();
+  if (keyError) throw keyError;
+  const apiKey = keyFromEnv || keyRecord?.secret_value;
+  if (!apiKey) throw new Error("Resend transactional API key not configured");
+
+  const amount = (monthlyPence / 100).toFixed(2);
+  const annualAmount = ((monthlyPence * 12) / 100).toFixed(2);
+  const label = property.property_name || property.address_line1 || "your property";
+  const location = [property.address_line1, property.town_city].filter(Boolean).join(", ");
+  const fuel = String(property.heating_fuel || "").toUpperCase();
+  const paidTime = isoFromUnix(invoice.status_transitions?.paid_at) || isoFromUnix(invoice.created) || new Date().toISOString();
+  const startedOn = new Date(paidTime).toLocaleDateString("en-GB", {day:"numeric",month:"long",year:"numeric",timeZone:"Europe/London"});
+  const termsUrl = "https://propertycare360.co.uk/terms/";
+  const lines = [
+    "Hello " + (customer.full_name || "there") + ",",
+    "",
+    "Your Property Care 360 membership is active.",
+    "Property: " + label + (location ? " (" + location + ")" : ""),
+    "Heating type: " + fuel,
+    "Membership started: " + startedOn,
+    "Monthly payment: £" + amount,
+    "Initial agreement: 12 months, paid monthly (£" + annualAmount + " total).",
+    "",
+    "Included each membership year: five priority plumbing/heating call-out attendances",
+    "(each with attendance and up to 30 minutes' diagnosis), one annual suitable gas/LPG/oil boiler service,",
+    "and an annual visual plumbing condition check at that service visit.",
+    "The included call-out allowance renews on your property's membership anniversary.",
+    "Further labour, repairs, materials, out-of-hours visits and services outside the plan are charged separately.",
+    "Please read your accepted Membership Terms version 1.7: " + termsUrl,
+    "The 14-day consumer cooling-off rights and early-performance conditions are explained there.",
+    invoice.hosted_invoice_url ? "Payment invoice: " + invoice.hosted_invoice_url : "",
+    "",
+    "For bookings or membership questions, reply to this email or visit https://propertycare360.co.uk/app/",
+    "Property Care 360 / Adam Glover Plumbing & Heating"
+  ].filter((line) => line !== undefined);
+  const bodyText = lines.join("\n");
+  const bodyHtml = "<div style=\"font-family:Arial,sans-serif;max-width:620px;line-height:1.6;color:#142235\"><h2>Property Care 360 membership active</h2>" +
+    "<p>Hello " + htmlSafe(customer.full_name || "there") + ",</p>" +
+    "<p>Your membership is active for <strong>" + htmlSafe(label) + "</strong> (" + htmlSafe(fuel) + ").</p>" +
+    "<p>Started: " + htmlSafe(startedOn) + "<br>Monthly payment: <strong>£" + amount +
+    "</strong><br>Initial term: 12 months, £" + annualAmount + " paid in monthly instalments.</p>" +
+    "<p>Included annually: <strong>five priority call-outs</strong> (attendance plus up to 30 minutes' assessment each), " +
+    "one suitable boiler service and one visual plumbing check at that appointment.</p>" +
+    "<p>Parts, additional labour, repairs and out-of-hours visits are charged separately. " +
+    "Your 14-day consumer cooling-off rights are set out in the " +
+    "<a href=\"" + termsUrl + "\">Membership Terms version 1.7</a>.</p>" +
+    "<p><a href=\"https://propertycare360.co.uk/app/\">View your membership</a></p>" +
+    "<p>Property Care 360 / Adam Glover Plumbing &amp; Heating</p></div>";
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + apiKey,
+      "Content-Type": "application/json",
+      "Idempotency-Key": "pc360-welcome-" + String(invoice.id)
+    },
+    body: JSON.stringify({
+      from: "Property Care 360 <membership@propertycare360.co.uk>",
+      to: [customer.email],
+      reply_to: "adamglover561@gmail.com",
+      subject: "Property Care 360 - your membership is active",
+      text: bodyText, html: bodyHtml
+    })
+  });
+  if (!response.ok) throw new Error("Membership confirmation email failed: HTTP " + response.status);
+  const { error: logError } = await supabase.from("notification_log").insert({
+    notification_key: notificationKey, notification_type: "membership_confirmation_sent", customer_id: customerId
+  });
+  if (logError && logError.code !== "23505") throw logError;
+}
+
 async function processInvoice(invoice: Record<string, any>, paid: boolean) {
   const stripeCustomerId = getId(invoice.customer);
   const stripeSubscriptionId = getId(invoice.parent?.subscription_details?.subscription) || getId(invoice.subscription);
@@ -220,9 +316,18 @@ async function processInvoice(invoice: Record<string, any>, paid: boolean) {
       throw new Error("Subscription checkout is not processed yet; retry invoice");
     }
     if (sub) {
+      // Stripe flexible billing may omit current_period_* on the subscription object.
+      // The invoice line has the correct dates for this monthly instalment.
+      const line = invoice.lines?.data?.find((l: Record<string,any>) =>
+        getId(l.parent?.subscription_item_details?.subscription) === stripeSubscriptionId)
+        || invoice.lines?.data?.[0];
+      const patch: Record<string,unknown> = {
+        status: paid ? "active" : "past_due", updated_at: new Date().toISOString()
+      };
+      if (typeof line?.period?.start === "number") patch.current_period_start = isoFromUnix(line.period.start);
+      if (typeof line?.period?.end === "number") patch.current_period_end = isoFromUnix(line.period.end);
       const { error: statusError } = await supabase.from("subscriptions")
-        .update({ status: paid ? "active" : "past_due", updated_at: new Date().toISOString() })
-        .eq("id", sub.id);
+        .update(patch).eq("id", sub.id);
       if (statusError) throw statusError;
     }
   }
@@ -265,21 +370,41 @@ async function processInvoice(invoice: Record<string, any>, paid: boolean) {
     .select("id")
     .maybeSingle();
   if (existingBillError) throw existingBillError;
-  if (existingBill) return;
+  if (!existingBill) {
+    const { error: billError } = await supabase.from("billing_records").insert({
+      customer_id: customerId,
+      property_id: propertyId,
+      stripe_invoice_id: invoice.id,
+      record_type: "subscription",
+      amount_pence: amount,
+      currency: invoice.currency || "gbp",
+      status: paid ? "paid" : "failed",
+      invoice_sync_status: "sent",
+      description: paid ? "Property Care 360 subscription payment" : "Property Care 360 subscription payment failed",
+      hosted_invoice_url: invoice.hosted_invoice_url || null
+    });
+    if (billError && billError.code !== "23505") throw billError;
+  }
 
-  const { error: billError } = await supabase.from("billing_records").insert({
-    customer_id: customerId,
-    property_id: propertyId,
-    stripe_invoice_id: invoice.id,
-    record_type: "subscription",
-    amount_pence: amount,
-    currency: invoice.currency || "gbp",
-    status: paid ? "paid" : "failed",
-    invoice_sync_status: "sent",
-    description: paid ? "Property Care 360 subscription payment" : "Property Care 360 subscription payment failed",
-    hosted_invoice_url: invoice.hosted_invoice_url || null
-  });
-  if (billError && billError.code !== "23505") throw billError;
+  // The first paid invoice starts the 12-month entitlement year; renewals never reset it.
+  if (paid && invoice.billing_reason === "subscription_create" && subscriptionDbId && propertyId) {
+    const { data: consent, error: consentError } = await supabase
+      .from("membership_checkout_consents")
+      .select("terms_version, monthly_price_pence")
+      .eq("customer_id",customerId).eq("property_id",propertyId)
+      .order("accepted_at", {ascending:false}).limit(1).maybeSingle();
+    if (consentError) throw consentError;
+    if (consent?.terms_version === "1.7") {
+      const startedAt = isoFromUnix(invoice.status_transitions?.paid_at)
+        || isoFromUnix(invoice.created) || new Date().toISOString();
+      const { error: entitlementError } = await supabase.from("property_cover")
+        .update({ membership_started_at: startedAt, annual_callouts_included: 5 })
+        .eq("subscription_id",subscriptionDbId).eq("property_id",propertyId)
+        .is("membership_started_at",null);
+      if (entitlementError) throw entitlementError;
+      await sendMembershipConfirmation(invoice, customerId, propertyId, consent.monthly_price_pence);
+    }
+  }
 }
 
 async function processSubscription(obj: Record<string, any>, forceCanceled = false) {
@@ -359,6 +484,7 @@ Deno.serve(async (req: Request) => {
         await processInvoice(obj, false);
         await notifyOwner("payment_failed", eventId);
         break;
+      case "customer.subscription.created":
       case "customer.subscription.updated":
         await processSubscription(obj, false);
         break;
