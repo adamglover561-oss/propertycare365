@@ -8,9 +8,11 @@ on:
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
       - tests/webhook.test.cjs
+      - tests/owner-push.test.cjs
       - tests/membership-welcome-integration.test.cjs
-      - tests/membership-welcome-flow.test.cjs
+      - tests/membership-welcome-flow.test.cjs tests/owner-push.test.cjs
       - supabase/functions/stripe-webhook/index.ts
+      - supabase/functions/owner-push/index.ts
       - .github/workflows/membership-contract-ci.yml
   pull_request:
     paths:
@@ -18,8 +20,10 @@ on:
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
       - tests/webhook.test.cjs
+      - tests/owner-push.test.cjs
       - tests/membership-welcome-flow.test.cjs
       - supabase/functions/stripe-webhook/index.ts
+      - supabase/functions/owner-push/index.ts
 
 jobs:
   contract:
