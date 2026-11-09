@@ -76,6 +76,15 @@ jobs:
             puts "Build #{attrs['version'] || '?'}: processing=#{attrs['processingState'] || 'unknown'}, uploaded=#{attrs['uploadedDate'] || 'unknown'}, expired=#{attrs['expired'] || 'unknown'}"
           end
           
+          builds.fetch('data', []).each do |build|
+            begin
+              detail = get_apple("/v1/builds/#{build.fetch('id')}/buildBetaDetail", {}, token)
+              battrs = detail.fetch('data', {}).fetch('attributes', {})
+              puts "Build beta status: internal=#{battrs['internalBuildState'] || 'unknown'}, external=#{battrs['externalBuildState'] || 'unknown'}"
+            rescue StandardError => e
+              puts "Build beta status unavailable: #{e.message}"
+            end
+          end
           begin
             versions = get_apple("/v1/apps/#{app_id}/appStoreVersions", { 'limit' => '20' }, token)
             versions.fetch('data', []).each do |v|
@@ -95,6 +104,7 @@ jobs:
             puts "Group assigned builds: #{group_builds.fetch('data', []).map { |build| build.dig('attributes', 'version') }.join(', ')}"
             group_testers = get_apple("/v1/betaGroups/#{group.fetch('id')}/betaTesters", { 'limit' => '200' }, token)
             puts "Group tester count on first page: #{group_testers.fetch('data', []).length}"
+            puts "Tester states: #{group_testers.fetch('data', []).map { |tester| tester.dig('attributes', 'state') || 'unknown' }.join(', ')}"
             end
           rescue StandardError => e
             puts "TestFlight-group lookup unavailable: #{e.message}"
