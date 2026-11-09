@@ -50,11 +50,9 @@ jobs:
           printf '%s' "$ASC_KEY" > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-      - name: Archive Property Care 360 with automatic signing
+      - name: Archive Property Care 360 without development signing
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild \
             -workspace ios/App/App.xcworkspace \
@@ -62,12 +60,8 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/PropertyCare360.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             PRODUCT_BUNDLE_IDENTIFIER="uk.co.propertycare360.app" \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             archive
