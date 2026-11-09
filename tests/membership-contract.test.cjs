@@ -49,6 +49,7 @@ test("all consumer-facing pages match the confirmed five-call-out and annual-ser
   for(const [name,html] of [["homepage",home],["partner page",partner],["signup app",app],["terms",terms]]){
     assert.match(html,/five.{0,90}call-out/i,name+" missing five call-outs");
     assert.match(html,/boiler service/i,name+" missing annual boiler service");
+    assert.doesNotMatch(html,/Parts, repairs, servicing, safety checks and further labour are quoted separately/i,name+" incorrectly excludes annual boiler service");
     assert.match(html,/plumbing (condition )?check/i,name+" missing annual plumbing check");
     assert.ok(!html.includes("Two call-outs/year")&&!html.includes("Two call-outs per membership year"),name+" contains retired allowance");
   }
