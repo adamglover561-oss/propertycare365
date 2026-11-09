@@ -17,7 +17,7 @@ function setup({foreign=false, urgent=true, subscribers=false, emailFails=false}
           let data=null;
           if(table==='notification_log') data=logKeys.has(filter.notification_key)?{notification_key:filter.notification_key}:null;
           if(table==='customers') data=filter.user_id?{id:'customer'}:{id:'customer',full_name:'Test Customer',email:'customer@example.com',phone:'07123456789'};
-          if(table==='jobs') data={id:'job',customer_id:foreign?'other':'customer',property_id:'property',booking_source:'customer',title:urgent?'URGENT CALL-OUT — Leak':'Breakdown requested',description:'Emergency call-out\\nContact phone: 07000000000',created_at:'2026-11-09T13:00:00Z'};
+          if(table==='jobs') data={id:'job',customer_id:foreign?'other':'customer',property_id:'property',booking_source:'customer',title:urgent?'URGENT CALL-OUT — Leak':'Breakdown requested',description:'Emergency call-out\nContact phone: 07000000000',created_at:'2026-11-09T13:00:00Z'};
           if(table==='properties') data={id:'property',address_line1:'1 Test Street',town_city:'St Austell',postcode:'PL25 1AA'};
           if(table==='integration_secrets') data={secret_value:'fake-test-key'};
           return {data,error:null};
@@ -33,7 +33,7 @@ function setup({foreign=false, urgent=true, subscribers=false, emailFails=false}
       };return q;
     }
   };
-  const source=fs.readFileSync('supabase/functions/owner-push/index.ts','utf8').replace(/^import .*;\\s*$/gm,'');
+  const source=fs.readFileSync('supabase/functions/owner-push/index.ts','utf8').replace(/^import .*;\s*$/gm,'');
   vm.runInNewContext(stripTypeScriptTypes(source),{
     Deno:{env:{get:()=> 'test'},serve:fn=>handler=fn},
     createClient:()=>admin,
