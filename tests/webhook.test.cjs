@@ -125,3 +125,12 @@ test('first-payment confirmation is guarded from repeat monthly invoices',()=>{
   assert.ok(src.includes('membership_confirmation_sent'));
   assert.ok(src.includes('annual_callouts_included: 5'));
 });
+
+test('customer and owner embedded scripts remain valid JavaScript',()=>{
+  for(const path of ['public/app/index.html','public/admin/index.html']){
+    const html=fs.readFileSync(path,'utf8');
+    const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
+    assert.ok(scripts.length>0,path+' missing script');
+    for(const script of scripts)new vm.Script(script,{filename:path});
+  }
+});
