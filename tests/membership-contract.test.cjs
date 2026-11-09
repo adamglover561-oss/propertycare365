@@ -9,6 +9,7 @@ const partner=fs.readFileSync("public/partner/index.html","utf8");
 const terms=fs.readFileSync("public/terms/index.html","utf8");
 const sql=fs.readFileSync("supabase/migrations/20261012102000_property_checkout_contract_consent.sql","utf8");
 const sqlV16=fs.readFileSync("supabase/migrations/20261107163500_pc360_terms_version_price_v16.sql","utf8");
+const sqlV17=fs.readFileSync("supabase/migrations/20261109100210_accept_pc360_terms_v17_oil_gas_lpg_same_prices.sql","utf8");
 
 function harness(answers=[true,false],rate=1999){
   const inserts=[], updates=[], navigations=[], alerts=[];
@@ -36,7 +37,7 @@ function harness(answers=[true,false],rate=1999){
 test("marketed contract prices disclose initial yearly commitment",()=>{
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(home.includes(s),"Homepage missing "+s);
   for(const s of ["£239.88","£19.99","12-month"])assert.ok(partner.includes(s),"Partner page missing "+s);
-  assert.match(terms,/Version 1\.6/);
+  assert.match(terms,/Version 1\.7/);
   assert.match(terms,/After the initial 12 months/);
   assert.match(terms,/rolling/);
   assert.match(terms,/cooling-off/);
@@ -51,8 +52,9 @@ test("all consumer-facing pages match the confirmed five-call-out and annual-ser
     assert.match(html,/plumbing (condition )?check/i,name+" missing annual plumbing check");
     assert.ok(!html.includes("Two call-outs/year")&&!html.includes("Two call-outs per membership year"),name+" contains retired allowance");
   }
-  assert.ok(terms.includes("Version 1.6"));
-  assert.ok(app.includes('const terms="1.6"'));
+  assert.ok(terms.includes("Version 1.7"));
+  assert.ok(app.includes('const terms="1.7"'));
+  assert.ok(terms.includes("/terms/v1.6/"));
   assert.ok(terms.includes("/terms/v1.5/"));
   assert.ok(terms.includes("/terms/v1.4/"));
   assert.doesNotMatch(home,/remote property-care review/i);
@@ -64,11 +66,11 @@ test("new membership checkout requires property-specific accepted evidence befor
   await h.checkout({heating_fuel:"gas",id:"property_1",property_name:"Sea View"});
   assert.equal(h.inserts.length,1);
   assert.equal(h.inserts[0].property_id,"property_1");
-  assert.equal(h.inserts[0].terms_version,"1.6");
+  assert.equal(h.inserts[0].terms_version,"1.7");
   assert.equal(h.inserts[0].monthly_price_pence,1999);
   assert.equal(h.inserts[0].initial_term_months,12);
   assert.equal(h.inserts[0].early_service_requested,false);
-  assert.equal(h.updates[0].terms_version,"1.6");
+  assert.equal(h.updates[0].terms_version,"1.7");
   assert.deepEqual(h.navigations,["/test-stripe-checkout"]);
 });
 
@@ -96,18 +98,27 @@ test("append-only consent table blocks customer edits and protects tenant bounda
   assert.match(sql,/p.customer_id = c.id/);
   assert.match(sql,/c.user_id = \(SELECT auth.uid\(\)\)/);
 });
-test('oil properties cannot buy the gas/LPG core membership',async()=>{
+test('oil, LPG and gas properties can buy the same priced membership',async()=>{
+  for(const fuel of ['gas','lpg','oil']){
+    const h=harness([true,false],1999);
+    await h.checkout({id:fuel+'_property',heating_fuel:fuel});
+    assert.equal(h.inserts[0].monthly_price_pence,1999);
+    assert.equal(h.inserts[0].terms_version,'1.7');
+    assert.deepEqual(h.navigations,['/test-stripe-checkout']);
+  }
+});
+test('electric properties still require a separate quotation',async()=>{
   const h=harness();
-  await h.checkout({id:'oil_property',heating_fuel:'oil'});
+  await h.checkout({id:'electric_property',heating_fuel:'electric'});
   assert.equal(h.inserts.length,0);
   assert.equal(h.navigations.length,0);
-  assert.match(h.alerts[0],/Request heating cover quote/);
+  assert.match(h.alerts[0],/separate quote/);
 });
 test('additional-property checkout records the £215.88 initial commitment',async()=>{
   const h=harness([true,false],1799);
   await h.checkout({id:'property_extra',heating_fuel:'lpg'});
   assert.equal(h.inserts[0].monthly_price_pence,1799);
-  assert.equal(h.inserts[0].terms_version,'1.6');
+  assert.equal(h.inserts[0].terms_version,'1.7');
   assert.equal(h.navigations.length,1);
 });
 test('only an active first-property membership unlocks additional pricing',()=>{
@@ -126,17 +137,19 @@ test('only an active first-property membership unlocks additional pricing',()=>{
   assert.equal(ctx.planForNextProperty().id,'base');
 });
 
-test("live checkout contract versions 1.5 and 1.6 have a matching database constraint migration",()=>{
+test("live checkout contract version 1.7 has a matching database constraint migration",()=>{
   assert.ok(sqlV16.includes("terms_version IN ('1.4', '1.5', '1.6')"));
   assert.ok(sqlV16.includes("monthly_price_pence IN (1999, 1799)"));
   assert.ok(sqlV16.includes("terms_version = '1.2'"));
   assert.ok(sqlV16.includes("terms_version = '1.3'"));
+  assert.ok(sqlV17.includes("terms_version IN ('1.4', '1.5', '1.6', '1.7')"));
+  assert.ok(sqlV17.includes("monthly_price_pence IN (1999, 1799)"));
 });
-test("yearly boiler service and plumbing check share one booking, non-gas checkout is blocked",()=>{
-  assert.ok(app.includes("Annual gas/LPG boiler service + visual plumbing check"));
+test("annual gas LPG oil service and plumbing check share one booking",()=>{
+  assert.ok(app.includes("Annual gas, LPG or oil boiler service + visual plumbing check"));
   assert.ok(!app.includes('<option value="plumbing_check">'));
-  assert.ok(app.includes("Only eligible gas/LPG properties can purchase this core membership online"));
-  assert.ok(app.includes("Annual gas/LPG boiler service and plumbing check request"));
+  assert.ok(app.includes("Eligible gas, LPG and oil properties can purchase this core membership online"));
+  assert.ok(app.includes("Annual gas, LPG or oil boiler service and plumbing check request"));
 });
 
 
@@ -156,7 +169,7 @@ test("customer app only advertises the current core and additional-property pric
   assert.doesNotMatch(app,/<strong>£(?:49|44|39)\/mo<\/strong>/);
 });
 
-test("non-gas properties show a quote action rather than a misleading subscription price",()=>{
+test("electric and other non-boiler properties show a quote action",()=>{
   assert.ok(app.includes('else if(!eligibleForCoreMembership(p)){'));
   assert.ok(app.includes('class="btn secondary heatingQuoteBtn"'));
   assert.ok(app.includes('Heating quote requested'));
@@ -164,7 +177,7 @@ test("non-gas properties show a quote action rather than a misleading subscripti
   assert.ok(app.includes('No membership or payment has been started.'));
 });
 
-test("oil property quote request saves a non-billable job without touching Stripe",async()=>{
+test("electric property quote request saves a non-billable job without touching Stripe",async()=>{
   const requests=[],events=[],alerts=[];
   const state={customer:{id:"customer_1"},jobs:[]};
   const supabase={from(table){
@@ -186,14 +199,14 @@ test("oil property quote request saves a non-billable job without touching Strip
   const quoteEnd=app.indexOf("function propertyCard(p){",quoteStart);
   assert.ok(fnStart>=0&&fnEnd>fnStart&&quoteStart>=0&&quoteEnd>quoteStart);
   vm.runInContext(app.slice(fnStart,fnEnd)+"\n"+app.slice(quoteStart,quoteEnd)+"\nglobalThis.requestHeatingQuote=requestHeatingQuote;",context);
-  await context.requestHeatingQuote({id:"oil_1",heating_fuel:"oil",hot_water_system:"unvented"});
+  await context.requestHeatingQuote({id:"electric_1",heating_fuel:"electric",hot_water_system:"unvented"});
   assert.equal(requests.length,1);
   assert.equal(requests[0].job_type,"other");
   assert.equal(requests[0].status,"requested");
   assert.equal(requests[0].labour_covered,false);
   assert.equal(requests[0].booking_source,"customer");
-  assert.equal(requests[0].property_id,"oil_1");
-  assert.match(requests[0].description,/Heating fuel: OIL/);
+  assert.equal(requests[0].property_id,"electric_1");
+  assert.match(requests[0].description,/Heating fuel: ELECTRIC/);
   assert.deepEqual(events,[{event:"booking_requested",id:"quote_job_1"}]);
   assert.match(alerts[0],/No membership or payment/);
 });
