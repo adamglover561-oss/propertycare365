@@ -332,6 +332,14 @@ async function processInvoice(invoice: Record<string, any>, paid: boolean) {
     propertyId = cover?.property_id ?? null;
   }
 
+  // Stripe can deliver invoice.paid before checkout.session.completed finishes
+  // creating property cover. Retry the invoice rather than losing the welcome.
+  if (paid && invoice.billing_reason === "subscription_create" &&
+      invoice.parent?.subscription_details?.metadata?.app === "property_care_365" &&
+      subscriptionDbId && !propertyId) {
+    throw new Error("First paid invoice arrived before property cover; retry invoice");
+  }
+
   const amount = paid
     ? (typeof invoice.amount_paid === "number" ? invoice.amount_paid : 0)
     : (typeof invoice.amount_due === "number" ? invoice.amount_due : 0);
@@ -395,15 +403,18 @@ async function processSubscription(obj: Record<string, any>, forceCanceled = fal
   const periodStart = obj.current_period_start ?? firstItem?.current_period_start ?? null;
   const periodEnd = obj.current_period_end ?? firstItem?.current_period_end ?? null;
 
+  // Flexible Stripe billing may omit period fields in subscription events.
+  // Do not wipe dates already populated from the paid invoice.
+  const patch: Record<string, unknown> = {
+    status: forceCanceled ? "canceled" : mapSubStatus(obj.status),
+    cancel_at_period_end: Boolean(obj.cancel_at_period_end),
+    updated_at: new Date().toISOString()
+  };
+  if (typeof periodStart === "number") patch.current_period_start = isoFromUnix(periodStart);
+  if (typeof periodEnd === "number") patch.current_period_end = isoFromUnix(periodEnd);
   const { data: updated, error } = await supabase
     .from("subscriptions")
-    .update({
-      status: forceCanceled ? "canceled" : mapSubStatus(obj.status),
-      current_period_start: isoFromUnix(periodStart),
-      current_period_end: isoFromUnix(periodEnd),
-      cancel_at_period_end: Boolean(obj.cancel_at_period_end),
-      updated_at: new Date().toISOString()
-    })
+    .update(patch)
     .eq("stripe_subscription_id", stripeSubscriptionId).select("id");
   if (error) throw error;
   if (!updated?.length && obj.metadata?.app === "property_care_365") throw new Error("Checkout must be processed before subscription update");
