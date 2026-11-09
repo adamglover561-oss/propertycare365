@@ -93,7 +93,7 @@ jobs:
           group_id = group.fetch('id')
 
           expected = ENV.fetch('EXPECTED_BUILD_NUMBER').strip
-          abort 'A numeric build number is required' unless expected.match?(/\\A[0-9]+\\z/)
+          abort 'A numeric build number is required' unless expected.match?(/\A[0-9]+\z/)
           wait_enabled = ENV.fetch('WAIT_FOR_PROCESSING', 'false') == 'true'
           deadline = Time.now + (wait_enabled ? 40 * 60 : 0)
           latest = nil
