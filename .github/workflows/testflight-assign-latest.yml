@@ -12,6 +12,11 @@ on:
         required: true
         type: boolean
         default: false
+      submit_for_beta_review:
+        description: Submit this exact build for external Apple TestFlight review
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,6 +33,7 @@ jobs:
           ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           EXPECTED_BUILD_NUMBER: ${{ inputs.build_number }}
           DECLARE_EXEMPT_ENCRYPTION: ${{ inputs.declare_exempt_encryption }}
+          SUBMIT_FOR_BETA_REVIEW: ${{ inputs.submit_for_beta_review }}
         run: |
           ruby <<'RUBY'
           require 'base64'
@@ -107,5 +113,17 @@ jobs:
             puts "Assigned build #{version} to External Field Test"
           end
           detail = apple('GET', "/v1/builds/#{latest.fetch('id')}/buildBetaDetail", {}, nil, token)
-          puts "External TestFlight state: #{detail.dig('data', 'attributes', 'externalBuildState') || 'unknown'}"
+          external_state = detail.dig('data', 'attributes', 'externalBuildState')
+          puts "External TestFlight state: #{external_state || 'unknown'}"
+          if ENV.fetch('SUBMIT_FOR_BETA_REVIEW', 'false') == 'true'
+            if external_state == 'READY_FOR_BETA_SUBMISSION'
+              submission = apple('POST', '/v1/betaAppReviewSubmissions', {}, {data: {type: 'betaAppReviewSubmissions', relationships: {build: {data: {type: 'builds', id: latest.fetch('id')}}}}}, token)
+              puts "Submitted build #{version} for Apple TestFlight beta review. Submission #{submission.dig('data', 'id') || 'created'}"
+              puts "Apple beta review state: #{submission.dig('data', 'attributes', 'betaReviewState') || 'pending'}"
+            elsif ['WAITING_FOR_BETA_REVIEW', 'IN_BETA_REVIEW', 'IN_BETA_TESTING', 'READY_FOR_BETA_TESTING'].include?(external_state)
+              puts "Build #{version} already progressed to #{external_state}; no duplicate review request"
+            else
+              abort "Build #{version} is not ready for beta review: #{external_state || 'unknown'}"
+            end
+          end
           RUBY
