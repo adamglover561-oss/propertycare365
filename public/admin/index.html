@@ -269,7 +269,7 @@ function startRealtime(){
     .subscribe();
 }
 
-let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[],deletions:[]};
+let s={customers:[],properties:[],subscriptions:[],covers:[],jobs:[],reports:[],billing:[],plans:[],leads:[],deletions:[],balances:[]};
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const date=v=>v?new Date(v).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
@@ -315,10 +315,11 @@ async function load(){
     supabase.from("billing_records").select("*").order("created_at",{ascending:false}),
     supabase.from("plans").select("*"),
     supabase.from("leads").select("*").order("created_at",{ascending:true}),
-    supabase.from("account_deletion_requests").select("*").order("requested_at",{ascending:false})
+    supabase.from("account_deletion_requests").select("*").order("requested_at",{ascending:false}),
+    supabase.from("membership_callout_balances").select("*")
   ]);
   for(const q of qs)if(q.error)throw q.error;
-  [s.customers,s.properties,s.subscriptions,s.covers,s.jobs,s.reports,s.billing,s.plans,s.leads,s.deletions]=qs.map(q=>q.data||[]);
+  [s.customers,s.properties,s.subscriptions,s.covers,s.jobs,s.reports,s.billing,s.plans,s.leads,s.deletions,s.balances]=qs.map(q=>q.data||[]);
   render();
 }
 function options(){
@@ -336,7 +337,10 @@ function jobCard(j){
   const urgent=String(j.title||"").startsWith("URGENT CALL-OUT");
   const contact=(j.description||"").split("\n").find(line=>line.startsWith("Contact phone:"))?.slice(14).trim()||c?.phone||"";
   const dial=contact.replace(/[^+0-9]/g,"").slice(0,25);
-  return '<div class="item'+(urgent?' urgent-job':'')+'"><div class="row mobile"><div><h4>'+(urgent?'<span class="tag urgent">URGENT</span> ':'')+esc(j.title)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+" · "+esc(p?.postcode||"")+'</div><div class="small" style="margin-top:5px">'+esc(j.description||"")+'</div><div style="margin-top:6px"><span class="tag '+calClass+'">'+esc(calText)+'</span>'+(j.calendar_event_url?' · <a href="'+esc(j.calendar_event_url)+'" target="_blank">Open calendar event</a>':'')+'</div></div>'+tag(j.status)+'</div><div class="grid" style="margin-top:10px"><div class="field"><label>Schedule</label><input class="jobDate" data-id="'+j.id+'" type="datetime-local" value="'+esc(local)+'"></div><div class="field"><label>Status</label><select class="jobStatus" data-id="'+j.id+'"><option value="requested">Requested</option><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option></select></div></div><div class="field" style="margin-top:8px"><label>Engineer notes</label><textarea class="jobNotes" data-id="'+j.id+'">'+esc(j.notes||"")+'</textarea></div><div class="actions" style="margin-top:8px"><button class="btn secondary saveJob" data-id="'+j.id+'">Save</button><button class="btn goodbtn completeJob" data-id="'+j.id+'">Complete job</button></div>'+(urgent?'<div class="actions" style="margin-top:10px">'+(dial?'<a class="btn danger" href="tel:'+esc(dial)+'">Call customer</a>':"")+'<button class="btn secondary openUrgentPhotos" type="button" data-id="'+esc(j.id)+'" data-customer="'+esc(j.customer_id)+'">View photos</button></div><div id="urgentPhotos-'+esc(j.id)+'" class="photo-links"></div>':"")+'</div>';
+  const callout=["breakdown","repair"].includes(j.job_type) && Boolean(coverFor(j.property_id));
+  const bal=s.balances.find(x=>x.property_id===j.property_id);
+  const allowanceHtml=bal?'<div class="small" style="margin-top:6px">Annual priority call-outs: <strong>'+esc(bal.remaining_callouts)+' of '+esc(bal.annual_callouts_included)+' remaining</strong> (ends '+date(bal.membership_year_end)+')</div>':"";
+  return '<div class="item'+(urgent?' urgent-job':'')+'"><div class="row mobile"><div><h4>'+(urgent?'<span class="tag urgent">URGENT</span> ':'')+esc(j.title)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+" · "+esc(p?.postcode||"")+'</div><div class="small" style="margin-top:5px">'+esc(j.description||"")+'</div><div style="margin-top:6px"><span class="tag '+calClass+'">'+esc(calText)+'</span>'+(j.calendar_event_url?' · <a href="'+esc(j.calendar_event_url)+'" target="_blank">Open calendar event</a>':'')+'</div></div>'+tag(j.status)+'</div><div class="grid" style="margin-top:10px"><div class="field"><label>Schedule</label><input class="jobDate" data-id="'+j.id+'" type="datetime-local" value="'+esc(local)+'"></div><div class="field"><label>Status</label><select class="jobStatus" data-id="'+j.id+'"><option value="requested">Requested</option><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option></select></div></div><div class="field" style="margin-top:8px"><label>Engineer notes</label><textarea class="jobNotes" data-id="'+j.id+'">'+esc(j.notes||"")+'</textarea></div><div class="actions" style="margin-top:8px"><button class="btn secondary saveJob" data-id="'+j.id+'">Save</button><button class="btn goodbtn completeJob" data-id="'+j.id+'">Complete job</button></div>'+(callout?'<div class="small" style="margin-top:8px">Completing an attended call-out counts one visit. Do not complete a call-out as attended if no visit took place.</div>':"")+allowanceHtml+(urgent?'<div class="actions" style="margin-top:10px">'+(dial?'<a class="btn danger" href="tel:'+esc(dial)+'">Call customer</a>':"")+'<button class="btn secondary openUrgentPhotos" type="button" data-id="'+esc(j.id)+'" data-customer="'+esc(j.customer_id)+'">View photos</button></div><div id="urgentPhotos-'+esc(j.id)+'" class="photo-links"></div>':"")+'</div>';
 }
 function render(){
   el("nCustomers").textContent=s.customers.length;el("nProperties").textContent=s.properties.length;el("nOpenJobs").textContent=s.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;el("nCovered").textContent=s.properties.filter(p=>coverFor(p.id)).length;
@@ -396,6 +400,10 @@ function bind(){
 async function saveJob(id,complete){
   const dateEl=document.querySelector('.jobDate[data-id="'+id+'"]'),statusEl=document.querySelector('.jobStatus[data-id="'+id+'"]'),notesEl=document.querySelector('.jobNotes[data-id="'+id+'"]');
   const status=complete?"completed":statusEl.value,dt=dateEl.value?new Date(dateEl.value).toISOString():null;
+  const j=s.jobs.find(x=>x.id===id);
+  if(status==="completed" && j?.status!=="completed" && ["breakdown","repair"].includes(j?.job_type) && coverFor(j.property_id)){
+    if(!confirm("Confirm this call-out was attended at the property? Completing it will use one of the five included annual call-outs. Cancel if no attendance occurred."))return;
+  }
   const patch={status,scheduled_for:dt,notes:notesEl.value||null,updated_at:new Date().toISOString()};if(dt && status!=="completed" && status!=="canceled")patch.calendar_sync_status="pending";if(status==="completed")patch.completed_at=new Date().toISOString();
   const {error}=await supabase.from("jobs").update(patch).eq("id",id);if(error)return alert(error.message);await load();
 }

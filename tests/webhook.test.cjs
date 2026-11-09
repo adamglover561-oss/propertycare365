@@ -102,3 +102,35 @@ test('additional-property webhook assigns £17.99 plan and records correct payme
   assert.equal(t.property_cover[0].monthly_price_pence,1799);
   assert.equal(t.billing_records[0].amount_pence,1799);
 });
+
+test('paid invoice syncs billing dates from flexible-billing invoice line',async()=>{
+  const {context:c,tables:t}=setup();
+  t.subscriptions.push({id:'s_dates',customer_id:'customer',stripe_subscription_id:'sub_dates',status:'pending',current_period_start:null,current_period_end:null});
+  t.property_cover.push({subscription_id:'s_dates',property_id:'prop',active:true});
+  await c.processInvoice({
+    id:'in_dates',customer:'cus_original',
+    parent:{subscription_details:{subscription:'sub_dates'}},
+    amount_paid:1999,currency:'gbp',
+    lines:{data:[{period:{start:1794222040,end:1796814040},parent:{subscription_item_details:{subscription:'sub_dates'}}}]}
+  },true);
+  assert.equal(t.subscriptions[0].status,'active');
+  assert.equal(t.subscriptions[0].current_period_start,new Date(1794222040*1000).toISOString());
+  assert.equal(t.subscriptions[0].current_period_end,new Date(1796814040*1000).toISOString());
+  assert.equal(t.billing_records.length,1);
+});
+test('first-payment confirmation is guarded from repeat monthly invoices',()=>{
+  const src=fs.readFileSync('supabase/functions/stripe-webhook/index.ts','utf8');
+  assert.ok(src.includes('invoice.billing_reason === "subscription_create"'));
+  assert.ok(src.includes('Idempotency-Key'));
+  assert.ok(src.includes('membership_confirmation_sent'));
+  assert.ok(src.includes('annual_callouts_included: 5'));
+});
+
+test('customer and owner embedded scripts remain valid JavaScript',()=>{
+  for(const path of ['public/app/index.html','public/admin/index.html']){
+    const html=fs.readFileSync(path,'utf8');
+    const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
+    assert.ok(scripts.length>0,path+' missing script');
+    for(const script of scripts)new vm.Script('(async()=>{\n'+script.replace(/^\s*import\s+.*?;\s*$/gm,'')+'\n})()', {filename:path});
+  }
+});
