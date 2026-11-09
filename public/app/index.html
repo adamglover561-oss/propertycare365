@@ -34,7 +34,7 @@
 
 <main id="appView" class="hidden">
 <section id="homePage">
-<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas and LPG properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div><div class="plan-card"><span>Each additional property</span><strong>£17.99/mo</strong><span>£215.88 over the first 12 months · same customer account</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 for your first property or £215.88 for each additional property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px"><strong>New memberships from 7 November 2026:</strong> Five priority call-outs for each eligible gas/LPG property per membership year (attendance plus up to 30 minutes of assessment or diagnosis each), one annual gas/LPG boiler service and one annual visual plumbing check at that appointment. Parts, repairs, further labour, oil or additional-appliance servicing, landlord gas-safety certificates and out-of-hours work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
+<div class="card hero"><span class="pill"><span class="dot"></span> Property Care 360 membership</span><h2 style="margin-top:14px">Plumbing & heating care for every property.</h2><p>For your home, rental, second home, holiday let or managed property: request breakdown visits, book maintenance, view reports and keep everything in one place. Gas, LPG and oil properties are supported.</p><div class="pricing-strip"><div class="plan-card primary-plan"><span>First property</span><strong>£19.99/mo</strong><span>£239.88 over the first 12 months</span></div><div class="plan-card"><span>Each additional property</span><strong>£17.99/mo</strong><span>£215.88 over the first 12 months · same customer account</span></div></div><div id="nextRateNote" class="next-rate">Each new property has a 12-month minimum agreement paid monthly; the first-year total is £239.88 for your first property or £215.88 for each additional property. Then rolling monthly.</div><div class="muted small" style="margin-top:10px"><strong>New memberships from 9 November 2026:</strong> Five priority call-outs for each eligible gas, LPG or oil property per membership year (attendance plus up to 30 minutes of assessment or diagnosis each), one annual gas, LPG or oil boiler service and one annual visual plumbing check at that appointment. Parts, repairs, further labour, additional-appliance servicing, landlord gas-safety certificates and out-of-hours work are charged separately after agreement. Property Care 360 is a service membership, not insurance.</div><div class="small" style="margin-top:10px"><a href="/terms/" target="_blank">Membership terms</a> · <a href="/privacy/" target="_blank">Privacy notice</a></div></div>
 <div class="grid3"><div class="stat"><strong id="statProperties">0</strong><span>Properties</span></div><div class="stat"><strong id="statCovered">0</strong><span>Covered</span></div><div class="stat"><strong id="statJobs">0</strong><span>Open jobs</span></div></div>
 <div class="card" style="margin-top:14px"><h3 class="section-title">Quick actions</h3><div class="grid"><button class="btn primary" id="quickAddProperty">+ Add property</button><button class="btn secondary" id="quickBook">Book a visit</button><button class="btn secondary" id="quickBreakdown">Request breakdown</button><button class="btn urgent" id="quickUrgent" type="button">🚨 Emergency call-out</button></div></div>
 <div class="card"><h3 class="section-title">Your properties</h3><div id="homePropertyList" class="list"></div></div>
@@ -43,7 +43,7 @@
 
 <section id="propertiesPage" class="hidden">
 <div class="card"><div class="row"><h3 class="section-title">Properties</h3><button id="showAddProperty" class="btn primary">+ Add</button></div><div id="propertyList" class="list"></div></div>
-<form id="propertyForm" class="card stack hidden"><div class="row"><h3 class="section-title">Add property</h3><button type="button" id="cancelProperty" class="btn secondary">Cancel</button></div><div class="grid"><div class="field"><label for="propertyName">Property name</label><input id="propertyName" placeholder="e.g. Sea View Cottage"></div><div class="field"><label for="propertyFuel">Heating fuel</label><select id="propertyFuel"><option value="gas">Gas</option><option value="lpg">LPG</option><option value="oil">Oil</option><option value="electric">Electric</option><option value="other">Other</option></select></div></div><div class="field"><label for="hotWaterSystem">Hot-water system</label><select id="hotWaterSystem"><option value="not_sure">Not sure</option><option value="unvented">Unvented cylinder</option><option value="vented">Vented cylinder</option><option value="combi">Combi boiler</option><option value="sunamp">Sunamp heat battery</option><option value="other">Other</option></select><div class="muted small">You can record gas, LPG, oil, electric and Sunamp properties. Only eligible gas/LPG properties can purchase this core membership online. For oil, electric or other systems, save the property and select Request heating cover quote. You will not be charged to request a quotation. One annual service of a suitable gas/LPG boiler and visual plumbing check are included for eligible new memberships; other servicing and specialist repairs are charged separately.</div></div><div class="field"><label for="address1">Address line 1</label><input id="address1" required></div><div class="grid"><div class="field"><label for="town">Town / city</label><input id="town" required></div><div class="field"><label for="postcode">Postcode</label><input id="postcode" required></div></div><div class="field"><label for="accessNotes">Access notes</label><textarea id="accessNotes" placeholder="Key safe, changeover contact, parking, etc."></textarea></div><button class="btn primary" type="submit">Save property</button></form>
+<form id="propertyForm" class="card stack hidden"><div class="row"><h3 class="section-title">Add property</h3><button type="button" id="cancelProperty" class="btn secondary">Cancel</button></div><div class="grid"><div class="field"><label for="propertyName">Property name</label><input id="propertyName" placeholder="e.g. Sea View Cottage"></div><div class="field"><label for="propertyFuel">Heating fuel</label><select id="propertyFuel"><option value="gas">Gas</option><option value="lpg">LPG</option><option value="oil">Oil</option><option value="electric">Electric</option><option value="other">Other</option></select></div></div><div class="field"><label for="hotWaterSystem">Hot-water system</label><select id="hotWaterSystem"><option value="not_sure">Not sure</option><option value="unvented">Unvented cylinder</option><option value="vented">Vented cylinder</option><option value="combi">Combi boiler</option><option value="sunamp">Sunamp heat battery</option><option value="other">Other</option></select><div class="muted small">You can record gas, LPG, oil, electric and Sunamp properties. Eligible gas, LPG and oil properties can purchase this core membership online at the same rates. For electric or other systems, save the property and select Request heating cover quote. You will not be charged to request a quotation. One annual service of a suitable gas, LPG or oil boiler and visual plumbing check are included for eligible new memberships; other servicing and specialist repairs are charged separately.</div></div><div class="field"><label for="address1">Address line 1</label><input id="address1" required></div><div class="grid"><div class="field"><label for="town">Town / city</label><input id="town" required></div><div class="field"><label for="postcode">Postcode</label><input id="postcode" required></div></div><div class="field"><label for="accessNotes">Access notes</label><textarea id="accessNotes" placeholder="Key safe, changeover contact, parking, etc."></textarea></div><button class="btn primary" type="submit">Save property</button></form>
 </section>
 
 <section id="jobsPage" class="hidden">
@@ -74,7 +74,7 @@
 <form id="bookingForm" class="stack" style="margin-top:12px">
 <div class="field"><label for="bookingProperty">Covered property</label><select id="bookingProperty" required></select></div>
 <div class="grid">
-<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="repair">Priority call-out</option><option value="annual_service">Annual gas/LPG boiler service + visual plumbing check — included for eligible new members</option><option value="inspection">Other planned inspection — quoted separately</option></select></div>
+<div class="field"><label for="bookingType">Visit type</label><select id="bookingType"><option value="repair">Priority call-out</option><option value="annual_service">Annual gas, LPG or oil boiler service + visual plumbing check — included for eligible new members</option><option value="inspection">Other planned inspection — quoted separately</option></select></div>
 <div class="field"><label for="bookingDate">Preferred date & time</label><input id="bookingDate" type="datetime-local" required></div>
 </div>
 <div class="field"><label for="bookingNotes">Notes</label><textarea id="bookingNotes" placeholder="Anything Adam should know before arriving?"></textarea></div>
@@ -156,12 +156,12 @@ function checkoutUrl(property){
   if(state.user.email)u.searchParams.set("locked_prefilled_email",state.user.email);
   return u.toString();
 }
-function eligibleForCoreMembership(property){return ["gas","lpg"].includes(String(property?.heating_fuel||"").toLowerCase());}
+function eligibleForCoreMembership(property){return ["gas","lpg","oil"].includes(String(property?.heating_fuel||"").toLowerCase());}
 let checkoutInProgress=false;
 async function acceptTermsAndCheckout(property){
   if(checkoutInProgress)return;
   if(!eligibleForCoreMembership(property)){
-    alert("This property is not eligible for the online gas/LPG plan. Use Request heating cover quote on the Properties tab; no payment is required to request a quote.");
+    alert("Electric and other non-boiler systems need a separate quote. Select Request heating cover quote on the Properties tab; there is no charge to request it.");
     return;
   }
   const plan=planForNextProperty();
@@ -172,7 +172,7 @@ async function acceptTermsAndCheckout(property){
     return;
   }
   const name=property.property_name||property.address_line1||"This property";
-  const terms="1.6";
+  const terms="1.7";
   const agreed=confirm([
     "PROPERTY CARE 360 - MEMBERSHIP AGREEMENT",
     "Property: "+name,
@@ -180,11 +180,11 @@ async function acceptTermsAndCheckout(property){
     "Initial minimum term: 12 months, from first successful membership payment",
     "Total for the first 12 months: "+fmtMoney(amount*12)+" (12 monthly payments)",
     "After year one: rolling monthly, cancellable before the next renewal.",
-    "Includes five priority plumbing or heating call-outs per membership year (attendance and up to 30 minutes of assessment or diagnosis each), one annual gas/LPG boiler service and an annual visual plumbing check at the same visit, subject to eligibility, availability and the terms.",
-    "Parts, repairs, labour after 30 minutes, oil or additional-appliance servicing, landlord gas-safety certificates, additional visits and out-of-hours work are extra.",
+    "Includes five priority plumbing or heating call-outs per membership year (attendance and up to 30 minutes of assessment or diagnosis each), one annual gas, LPG or oil boiler service and an annual visual plumbing check at the same visit, subject to eligibility, availability and the terms.",
+    "Parts, repairs, labour after 30 minutes, additional-appliance servicing, landlord gas-safety certificates, additional visits and out-of-hours work are extra.",
     "Your statutory cooling-off and other cancellation rights are preserved.",
     "",
-    "Read Property Care 360 Membership Terms version 1.6 using the link on this page BEFORE continuing.",
+    "Read Property Care 360 Membership Terms version 1.7 using the link on this page BEFORE continuing.",
     "Press OK only if you have read the terms and expressly agree to this 12-month initial membership for this property. Cancel returns without charging."
   ].join("\n"));
   if(!agreed)return;
@@ -212,14 +212,14 @@ const HEATING_QUOTE_TITLE="Property Care 360 heating cover quotation";
 function heatingQuoteRequested(property){return state.jobs.some(job=>job.property_id===property.id&&job.title===HEATING_QUOTE_TITLE&&["requested","pending"].includes(job.status));}
 async function requestHeatingQuote(property){
   if(!property?.id||!state.customer?.id)return alert("We could not identify this property. Please sign in again.");
-  if(eligibleForCoreMembership(property))return alert("Gas and LPG properties can use the standard membership checkout.");
+  if(eligibleForCoreMembership(property))return alert("Gas, LPG and oil properties can use the standard membership checkout.");
   if(heatingQuoteRequested(property))return alert("You have already requested a heating cover quote for this property. We will contact you.");
   const fuel=String(property.heating_fuel||"other").toUpperCase();
   const system=String(property.hot_water_system||"not_sure").replaceAll("_"," ");
   const {data,error}=await supabase.from("jobs").insert({
     property_id:property.id,customer_id:state.customer.id,job_type:"other",
     title:HEATING_QUOTE_TITLE,
-    description:"Customer requests an individual Property Care 360 membership quotation. Heating fuel: "+fuel+". Hot-water system: "+system+". Standard gas/LPG online cover was not purchased. Please confirm eligibility, services and price before any payment.",
+    description:"Customer requests an individual Property Care 360 membership quotation. Heating fuel: "+fuel+". Hot-water system: "+system+". Standard gas/LPG/oil online cover was not purchased. Please confirm eligibility, services and price before any payment.",
     status:"requested",labour_covered:false,booking_source:"customer"
   }).select("id").single();
   if(error)return alert("The quote request could not be saved. Please call 07904 404426 instead. "+error.message);
@@ -278,7 +278,7 @@ el("bookingForm").addEventListener("submit",async e=>{
   const start=el("bookingDate").value?new Date(el("bookingDate").value):null;
   if(!start || start.getTime()<=Date.now()) return alert("Choose a future appointment time.");
   const type=el("bookingType").value;
-  const titles={annual_service:"Annual gas/LPG boiler service and plumbing check request",plumbing_check:"Plumbing check request",repair:"Priority call-out",inspection:"Planned inspection quote request"};
+  const titles={annual_service:"Annual gas, LPG or oil boiler service and plumbing check request",plumbing_check:"Plumbing check request",repair:"Priority call-out",inspection:"Planned inspection quote request"};
   const {data,error}=await supabase.from("jobs").insert({
     property_id:pid,
     customer_id:state.customer.id,
