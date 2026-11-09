@@ -33,11 +33,13 @@ jobs:
       - name: Build web bundle
         run: npm run build
       - name: Generate iOS project
-        run: npx cap add ios
+        run: npx cap add ios --packagemanager CocoaPods
       - name: Apply branded native assets
         run: node scripts/native-assets.mjs
       - name: Sync iOS
-        run: npx cap sync ios
+        run: |
+          pod --version
+          npx cap sync ios
       - name: Install App Store Connect API key
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -55,7 +57,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild \
-            -project ios/App/App.xcodeproj \
+            -workspace ios/App/App.xcworkspace \
             -scheme App \
             -configuration Release \
             -destination "generic/platform=iOS" \
