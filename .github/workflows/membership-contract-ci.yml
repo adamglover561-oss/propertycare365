@@ -8,6 +8,7 @@ on:
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
       - tests/webhook.test.cjs
+      - tests/membership-welcome-flow.test.cjs
       - supabase/functions/stripe-webhook/index.ts
       - .github/workflows/membership-contract-ci.yml
   pull_request:
@@ -16,6 +17,7 @@ on:
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
       - tests/webhook.test.cjs
+      - tests/membership-welcome-flow.test.cjs
       - supabase/functions/stripe-webhook/index.ts
 
 jobs:
@@ -27,4 +29,4 @@ jobs:
         with:
           node-version: "24"
       - name: Test terms, consent, rates and checkout safeguards
-        run: node --test tests/membership-contract.test.cjs tests/webhook.test.cjs
+        run: node --test tests/membership-contract.test.cjs tests/webhook.test.cjs tests/membership-welcome-flow.test.cjs
