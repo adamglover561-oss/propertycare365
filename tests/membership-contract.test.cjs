@@ -26,7 +26,7 @@ function harness(answers=[true,false],rate=1999){
     confirm:()=>answers.shift(), alert:msg=>alerts.push(msg),
     window:{location:{assign:url=>navigations.push(url)}}
   });
-  const start=app.indexOf("let checkoutInProgress=false;");
+  const start=app.indexOf("function eligibleForCoreMembership(property){");
   const end=app.indexOf("async function requestMultiProperty(",start);
   assert.ok(start>=0&&end>start,"Checkout handler present");
   vm.runInContext(app.slice(start,end)+";globalThis.checkout=acceptTermsAndCheckout;",ctx);
@@ -101,7 +101,7 @@ test('oil properties cannot buy the gas/LPG core membership',async()=>{
   await h.checkout({id:'oil_property',heating_fuel:'oil'});
   assert.equal(h.inserts.length,0);
   assert.equal(h.navigations.length,0);
-  assert.match(h.alerts[0],/separate quotation/);
+  assert.match(h.alerts[0],/Request heating cover quote/);
 });
 test('additional-property checkout records the £215.88 initial commitment',async()=>{
   const h=harness([true,false],1799);
@@ -154,4 +154,46 @@ test("customer app only advertises the current core and additional-property pric
   assert.match(app,/<strong>£19\.99\/mo<\/strong>/);
   assert.match(app,/<strong>£17\.99\/mo<\/strong>/);
   assert.doesNotMatch(app,/<strong>£(?:49|44|39)\/mo<\/strong>/);
+});
+
+test("non-gas properties show a quote action rather than a misleading subscription price",()=>{
+  assert.ok(app.includes('else if(!eligibleForCoreMembership(p)){'));
+  assert.ok(app.includes('class="btn secondary heatingQuoteBtn"'));
+  assert.ok(app.includes('Heating quote requested'));
+  assert.ok(app.includes('requestHeatingQuote(p);'));
+  assert.ok(app.includes('No membership or payment has been started.'));
+});
+
+test("oil property quote request saves a non-billable job without touching Stripe",async()=>{
+  const requests=[],events=[],alerts=[];
+  const state={customer:{id:"customer_1"},jobs:[]};
+  const supabase={from(table){
+    assert.equal(table,"jobs");
+    return {insert(row){
+      requests.push(row);
+      return {select(column){
+        assert.equal(column,"id");
+        return {async single(){return {data:{id:"quote_job_1"},error:null}}};
+      }};
+    }};
+  }};
+  const context=vm.createContext({state,supabase,alert:m=>alerts.push(m),
+    notifyOwner:(event,id)=>{events.push({event,id});return Promise.resolve({ok:true})},
+    loadData:async()=>{},String});
+  const fnStart=app.indexOf("function eligibleForCoreMembership(property){");
+  const fnEnd=app.indexOf("let checkoutInProgress=false;",fnStart);
+  const quoteStart=app.indexOf("const HEATING_QUOTE_TITLE=");
+  const quoteEnd=app.indexOf("function propertyCard(p){",quoteStart);
+  assert.ok(fnStart>=0&&fnEnd>fnStart&&quoteStart>=0&&quoteEnd>quoteStart);
+  vm.runInContext(app.slice(fnStart,fnEnd)+"\n"+app.slice(quoteStart,quoteEnd)+"\nglobalThis.requestHeatingQuote=requestHeatingQuote;",context);
+  await context.requestHeatingQuote({id:"oil_1",heating_fuel:"oil",hot_water_system:"unvented"});
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].job_type,"other");
+  assert.equal(requests[0].status,"requested");
+  assert.equal(requests[0].labour_covered,false);
+  assert.equal(requests[0].booking_source,"customer");
+  assert.equal(requests[0].property_id,"oil_1");
+  assert.match(requests[0].description,/Heating fuel: OIL/);
+  assert.deepEqual(events,[{event:"booking_requested",id:"quote_job_1"}]);
+  assert.match(alerts[0],/No membership or payment/);
 });
