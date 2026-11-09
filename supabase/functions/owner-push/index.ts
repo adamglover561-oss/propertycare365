@@ -98,7 +98,7 @@ async function sendOwnerEmailForJob(event: string, jobId: string): Promise<boole
   const label = urgent ? "URGENT CALL-OUT" : event === "booking_requested" ? "NEW APPOINTMENT REQUEST" : "NEW BREAKDOWN REQUEST";
   const address = [property.address_line1, property.address_line2, property.town_city, property.postcode]
     .filter(Boolean).join(", ");
-  const contactFromRequest = String(job.description || "").match(/^Contact phone:\\s*(.+)$/m)?.[1]?.trim();
+  const contactFromRequest = String(job.description || "").match(/^Contact phone:\s*(.+)$/m)?.[1]?.trim();
   const content = [
     "Property Care 360 — " + label,
     "",
@@ -117,7 +117,7 @@ async function sendOwnerEmailForJob(event: string, jobId: string): Promise<boole
     "Job ID: " + jobId,
     "",
     "For urgent safety issues, contact the customer promptly. This email is a notification, not confirmation of an attended visit."
-  ].join("\\n");
+  ].join("\n");
 
   const requestHeaders = {
     "Authorization": "Bearer " + apiKey,
