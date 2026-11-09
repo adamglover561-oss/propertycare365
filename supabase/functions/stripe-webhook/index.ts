@@ -158,26 +158,6 @@ async function processCheckoutCompleted(session: Record<string, any>) {
     }, { onConflict: "subscription_id,property_id" });
   if (coverError) throw coverError;
 
-  const { error: dueError } = await supabase
-    .from("properties")
-    .update({
-      next_boiler_service_due: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0,10),
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", propertyId)
-    .is("next_boiler_service_due", null);
-  if (dueError) throw dueError;
-
-  const { error: plumbingDueError } = await supabase
-    .from("properties")
-    .update({
-      next_plumbing_check_due: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0,10),
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", propertyId)
-    .is("next_plumbing_check_due", null);
-  if (plumbingDueError) throw plumbingDueError;
-
   const amount = typeof session.amount_total === "number" ? session.amount_total : plan.monthly_price_pence;
   const bill = {
     customer_id: customerId,
@@ -491,6 +471,15 @@ Deno.serve(async (req: Request) => {
       case "customer.subscription.deleted":
         await processSubscription(obj, true);
         await notifyOwner("subscription_canceled", eventId);
+        break;
+      case "charge.refunded":
+        await notifyOwner("charge_refunded", eventId);
+        break;
+      case "charge.dispute.created":
+        await notifyOwner("charge_dispute_created", eventId);
+        break;
+      case "radar.early_fraud_warning.created":
+        await notifyOwner("early_fraud_warning", eventId);
         break;
       default:
         break;
