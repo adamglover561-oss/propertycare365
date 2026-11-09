@@ -17,6 +17,11 @@ on:
         required: true
         type: boolean
         default: false
+      wait_for_processing:
+        description: Wait up to 40 minutes for the exact uploaded build to finish Apple processing
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,7 +29,7 @@ permissions:
 jobs:
   assign:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 48
     steps:
       - name: Assign latest processed build to external TestFlight testers
         env:
@@ -34,6 +39,7 @@ jobs:
           EXPECTED_BUILD_NUMBER: ${{ inputs.build_number }}
           DECLARE_EXEMPT_ENCRYPTION: ${{ inputs.declare_exempt_encryption }}
           SUBMIT_FOR_BETA_REVIEW: ${{ inputs.submit_for_beta_review }}
+          WAIT_FOR_PROCESSING: ${{ inputs.wait_for_processing }}
         run: |
           ruby <<'RUBY'
           require 'base64'
@@ -86,15 +92,29 @@ jobs:
           abort 'External testing group missing' unless group
           group_id = group.fetch('id')
 
-          builds = apple('GET', '/v1/builds', {'filter[app]' => app_id,'sort' => '-uploadedDate','limit' => '20'}, nil, token).fetch('data')
-          abort 'No uploaded iOS build found' if builds.empty?
-          latest = builds.first
-          version = latest.dig('attributes','version') || '?'
-          status = latest.dig('attributes','processingState') || 'unknown'
-          puts "Most recent build number #{version}; processing=#{status}"
-          abort 'Latest build is not yet valid; run again after Apple finishes processing' unless status == 'VALID'
           expected = ENV.fetch('EXPECTED_BUILD_NUMBER').strip
-          abort "Expected build #{expected}, but latest is #{version}; refusing to change the wrong build" unless version.to_s == expected
+          abort 'A numeric build number is required' unless expected.match?(/\\A[0-9]+\\z/)
+          wait_enabled = ENV.fetch('WAIT_FOR_PROCESSING', 'false') == 'true'
+          deadline = Time.now + (wait_enabled ? 40 * 60 : 0)
+          latest = nil
+          version = expected
+          loop do
+            builds = apple('GET', '/v1/builds', {'filter[app]' => app_id,'sort' => '-uploadedDate','limit' => '50'}, nil, token).fetch('data')
+            target = builds.find { |b| b.dig('attributes','version').to_s == expected }
+            if target && builds.first.fetch('id') != target.fetch('id')
+              abort "Build #{expected} is no longer the latest upload; refusing to assign an older build"
+            end
+            status = target&.dig('attributes','processingState') || 'not listed yet'
+            puts "Expected build #{expected}: processing=#{status}"
+            if target && status == 'VALID'
+              latest = target
+              break
+            end
+            abort "Apple reports build #{expected} processing failure: #{status}" if ['FAILED','INVALID'].include?(status)
+            abort "Build #{expected} is not ready in Apple; please rerun after processing" unless wait_enabled && Time.now < deadline
+            sleep 45
+          end
+          puts "Verified build #{version} is latest and VALID"
           detail = apple('GET', "/v1/builds/#{latest.fetch('id')}/buildBetaDetail", {}, nil, token)
           external_state = detail.dig('data', 'attributes', 'externalBuildState')
           puts "External state before assignment: #{external_state || 'unknown'}"
