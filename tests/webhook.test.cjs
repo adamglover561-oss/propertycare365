@@ -131,6 +131,6 @@ test('customer and owner embedded scripts remain valid JavaScript',()=>{
     const html=fs.readFileSync(path,'utf8');
     const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
     assert.ok(scripts.length>0,path+' missing script');
-    for(const script of scripts)new vm.Script(script.replace(/^\\s*import\\s+.*?;\\s*$/gm,''),{filename:path});
+    for(const script of scripts)new vm.Script(script.replace(/^\s*import\s+.*?;\s*$/gm,''),{filename:path});
   }
 });
