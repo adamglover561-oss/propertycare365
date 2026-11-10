@@ -49,7 +49,7 @@ jobs:
                   if matches:
                       return sorted(matches,key=lambda x:x[0],reverse=True)[0][1]
               raise RuntimeError("No matching simulator: "+str([(r,d["name"]) for r,d in candidates]))
-          phone=choose([lambda n:n=="iPhone 16 Pro",lambda n:n=="iPhone 15 Pro",lambda n:n=="iPhone 16"])
+          phone=choose([lambda n:n=="iPhone 17",lambda n:n=="iPhone 16 Pro",lambda n:n=="iPhone 15 Pro",lambda n:n=="iPhone 16"])
           ipad=choose([lambda n:"iPad Pro 13-inch" in n,lambda n:"iPad Air 13-inch" in n])
           manifest={"source_sha":"5a3026697b9de7dad3e52703e32bfe3d3ebcb40f","testflight_build":12,"screens":[]}
           app=str(pathlib.Path("build/ios/Build/Products/Release-iphonesimulator/App.app").resolve())
