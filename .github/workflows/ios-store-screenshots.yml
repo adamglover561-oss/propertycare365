@@ -1,0 +1,75 @@
+name: Capture iOS App Store screenshots
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/ios-store-screenshots.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Match the source uploaded as TestFlight build 12.
+          ref: 5a3026697b9de7dad3e52703e32bfe3d3ebcb40f
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap add ios --packagemanager CocoaPods
+      - run: node scripts/native-assets.mjs
+      - run: npx cap sync ios
+      - name: Build unchanged app for Simulator
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
+      - name: Capture actual app on iPhone and iPad
+        run: |
+          mkdir -p build/screenshots
+          python3 - <<'PY'
+          import json, subprocess, time, pathlib
+          def run(*args):
+              return subprocess.check_output(args, text=True).strip()
+          devices = json.loads(run("xcrun","simctl","list","devices","available","--json"))["devices"]
+          candidates = [(runtime,d) for runtime,items in devices.items() if ".iOS-" in runtime for d in items if d.get("isAvailable")]
+          def choose(patterns):
+              for pattern in patterns:
+                  matches=[(r,d) for r,d in candidates if pattern(d["name"])]
+                  if matches:
+                      return sorted(matches,key=lambda x:x[0],reverse=True)[0][1]
+              raise RuntimeError("No matching simulator: "+str([(r,d["name"]) for r,d in candidates]))
+          phone=choose([lambda n:n=="iPhone 16 Pro",lambda n:n=="iPhone 15 Pro",lambda n:n=="iPhone 16"])
+          ipad=choose([lambda n:"iPad Pro 13-inch" in n,lambda n:"iPad Air 13-inch" in n])
+          manifest={"source_sha":"5a3026697b9de7dad3e52703e32bfe3d3ebcb40f","testflight_build":12,"screens":[]}
+          app=str(pathlib.Path("build/ios/Build/Products/Release-iphonesimulator/App.app").resolve())
+          for label,device in [("iphone",phone),("ipad",ipad)]:
+              udid=device["udid"]
+              if device["state"]!="Booted": run("xcrun","simctl","boot",udid)
+              run("xcrun","simctl","bootstatus",udid,"-b")
+              run("xcrun","simctl","status_bar",udid,"override","--time","9:41","--dataNetwork","wifi","--wifiMode","active","--wifiBars","3","--batteryState","charged","--batteryLevel","100")
+              run("xcrun","simctl","install",udid,app)
+              run("xcrun","simctl","launch",udid,"uk.co.propertycare360.app")
+              time.sleep(15)
+              filename=label+"-build12.png"
+              run("xcrun","simctl","io",udid,"screenshot","build/screenshots/"+filename)
+              manifest["screens"].append({"device":device["name"],"file":filename,"screen":"Initial app screen, no seeded or fabricated data"})
+              run("xcrun","simctl","shutdown",udid)
+          pathlib.Path("build/screenshots/manifest.json").write_text(json.dumps(manifest,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: property-care-360-build12-screenshots
+          path: mobile/build/screenshots/
+          if-no-files-found: error
+          retention-days: 30
