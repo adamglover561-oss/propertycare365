@@ -450,7 +450,7 @@ asDateKind.addEventListener("change",()=>{
 el("assistedSignupForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const submit=el("asSubmit"),status=el("asStatus");
-  if(el("asSignature").value.trim().replace(/\\s+/g," ").toLowerCase()!==el("asName").value.trim().replace(/\\s+/g," ").toLowerCase()){
+  if(el("asSignature").value.trim().replace(/\s+/g," ").toLowerCase()!==el("asName").value.trim().replace(/\s+/g," ").toLowerCase()){
     status.textContent="The customer must type their full name to accept the membership.";
     return;
   }
@@ -474,7 +474,7 @@ el("assistedSignupForm").addEventListener("submit",async event=>{
     if(target.protocol!=="https:"||target.hostname!=="buy.stripe.com")
       throw new Error("Unexpected checkout destination");
     status.textContent="Customer and property saved. Hand over the tablet for payment.";
-    window.location.assign(target.toString());
+    window.location.replace(target.toString());
   }catch(err){
     status.textContent="No payment was taken. "+(err?.message||"Could not create assisted signup.");
   }finally{submit.disabled=false;}
