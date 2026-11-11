@@ -89,6 +89,38 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 </section>
 
 <section id="customersTab" class="hidden">
+
+<div class="card">
+  <h3 class="section-title">Assisted sign-up — customer visit</h3>
+  <p class="muted small">For customers who prefer help in person. You enter the details; the customer personally approves the membership and enters their payment details on Stripe's secure checkout. You never enter or store their card number.</p>
+  <form id="assistedSignupForm" class="stack">
+    <div class="grid">
+      <div class="field"><label for="asName">Customer's full name</label><input id="asName" autocomplete="off" required maxlength="120"></div>
+      <div class="field"><label for="asEmail">Customer's email for receipts and membership confirmation</label><input id="asEmail" type="email" required maxlength="250" autocomplete="off"></div>
+      <div class="field"><label for="asPhone">Contact telephone</label><input id="asPhone" type="tel" required maxlength="40"></div>
+      <div class="field"><label for="asFuel">Heating fuel</label><select id="asFuel" required><option value="gas">Gas</option><option value="lpg">LPG</option><option value="oil">Oil</option></select></div>
+      <div class="field"><label for="asAddress">Property address</label><input id="asAddress" required maxlength="180"></div>
+      <div class="field"><label for="asTown">Town</label><input id="asTown" required maxlength="100"></div>
+      <div class="field"><label for="asPostcode">Postcode</label><input id="asPostcode" required maxlength="14"></div>
+      <div class="field"><label for="asDateKind">When should the annual boiler service be?</label><select id="asDateKind"><option value="unknown">Not sure — contact me to arrange</option><option value="due">I know when my service is due</option><option value="preferred">I'd prefer a particular date</option></select></div>
+      <div class="field hidden" id="asDateField"><label for="asDate">Due or preferred date (not a confirmed appointment)</label><input id="asDate" type="date"></div>
+    </div>
+    <div class="notice">
+      <strong>Property Care 360: £19.99 per month</strong> · Initial 12-month agreement (£239.88 total), then monthly rolling.
+      Five priority call-outs each year with attendance and up to 30 minutes of assessment or diagnosis per visit, an annual eligible gas/LPG/oil boiler service, and an annual plumbing check.
+      Parts, repairs, additional labour, out-of-hours attendance and other exclusions are charged separately.
+      <a href="/terms/" target="_blank" rel="noopener">Read membership terms v1.7</a> and
+      <a href="/privacy/" target="_blank" rel="noopener">privacy notice</a> with the customer before continuing.
+    </div>
+    <div class="field"><label for="asEarly"><input id="asEarly" type="checkbox" style="width:auto"> Customer requests that services may begin during their first 14-day cooling-off period</label><span class="muted small">Optional. A reasonable proportionate charge for services already provided may apply if cancelled during the cooling-off period.</span></div>
+    <div class="field"><label for="asConsent"><input id="asConsent" type="checkbox" style="width:auto" required> I am the customer and I have read and agree to the 12-month membership and its recurring payments</label></div>
+    <div class="field"><label for="asSignature">Customer: type your full name to accept (not the engineer)</label><input id="asSignature" required maxlength="120" autocomplete="off"></div>
+    <p class="muted small">Hand the tablet to the customer for the agreement above and for Stripe's card entry. You can book by phone later; selecting a due date here does not book a visit.</p>
+    <button id="asSubmit" class="btn primary" type="submit">Continue to secure monthly membership checkout</button>
+    <div id="asStatus" role="status" aria-live="polite" class="muted small"></div>
+  </form>
+</div>
+
 <div class="card"><h3 class="section-title">Customers & properties</h3><div id="customersList"></div></div>
 </section>
 
@@ -407,6 +439,47 @@ async function saveJob(id,complete){
   const patch={status,scheduled_for:dt,notes:notesEl.value||null,updated_at:new Date().toISOString()};if(dt && status!=="completed" && status!=="canceled")patch.calendar_sync_status="pending";if(status==="completed")patch.completed_at=new Date().toISOString();
   const {error}=await supabase.from("jobs").update(patch).eq("id",id);if(error)return alert(error.message);await load();
 }
+
+const asDateKind=el("asDateKind");
+asDateKind.addEventListener("change",()=>{
+  const needsDate=asDateKind.value!=="unknown";
+  el("asDateField").classList.toggle("hidden",!needsDate);
+  el("asDate").required=needsDate;
+  if(!needsDate)el("asDate").value="";
+});
+el("assistedSignupForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const submit=el("asSubmit"),status=el("asStatus");
+  if(el("asSignature").value.trim().replace(/\s+/g," ").toLowerCase()!==el("asName").value.trim().replace(/\s+/g," ").toLowerCase()){
+    status.textContent="The customer must type their full name to accept the membership.";
+    return;
+  }
+  submit.disabled=true;
+  status.textContent="Preparing secure recurring checkout. No payment has been taken.";
+  try{
+    const body={
+      action:"prepare",fullName:el("asName").value,email:el("asEmail").value,
+      phone:el("asPhone").value,address:el("asAddress").value,
+      town:el("asTown").value,postcode:el("asPostcode").value,
+      fuel:el("asFuel").value,serviceDateKind:asDateKind.value,
+      serviceDate:el("asDate").value,
+      earlyServiceRequested:el("asEarly").checked,
+      customerAcceptedTerms:el("asConsent").checked,
+      typedName:el("asSignature").value
+    };
+    const {data,error}=await supabase.functions.invoke("assisted-signup",{body});
+    if(error)throw new Error(data?.error || error.message || "Assisted signup unavailable");
+    if(!data?.checkoutUrl)throw new Error(data?.error||"Secure checkout URL was not returned");
+    const target=new URL(data.checkoutUrl);
+    if(target.protocol!=="https:"||target.hostname!=="buy.stripe.com")
+      throw new Error("Unexpected checkout destination");
+    status.textContent="Customer and property saved. Hand over the tablet for payment.";
+    window.location.replace(target.toString());
+  }catch(err){
+    status.textContent="No payment was taken. "+(err?.message||"Could not create assisted signup.");
+  }finally{submit.disabled=false;}
+});
+
 el("newJobForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("newJobProperty").value);if(!p)return alert("Choose a property");const dt=el("newJobDate").value?new Date(el("newJobDate").value).toISOString():null;const {error}=await supabase.from("jobs").insert({property_id:p.id,customer_id:p.customer_id,job_type:el("newJobType").value,title:el("newJobTitle").value.trim(),description:el("newJobDesc").value.trim()||null,status:dt?"scheduled":"requested",scheduled_for:dt,duration_minutes:90,calendar_sync_status:dt?"pending":"not_required",booking_source:"admin",labour_covered:["annual_service","plumbing_check"].includes(el("newJobType").value)&&Boolean(coverFor(p.id))});if(error)return alert(error.message);e.target.reset();await load()});
 el("reportForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("reportProperty").value);if(!p)return;let path=null;const f=el("reportFile").files[0];if(f){path=p.customer_id+"/"+p.id+"/"+crypto.randomUUID()+"-"+f.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error:up}=await supabase.storage.from("home-care-reports").upload(path,f,{upsert:false,contentType:f.type||"application/octet-stream"});if(up)return alert(up.message)}const {error}=await supabase.from("reports").insert({job_id:el("reportJob").value||null,property_id:p.id,customer_id:p.customer_id,report_type:el("reportType").value,summary:el("reportSummary").value.trim(),file_url:null,storage_path:path});if(error)return alert(error.message);e.target.reset();await load()});
 el("chargeForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("chargeProperty").value);if(!p)return;const amount=Math.round(Number(el("chargeAmount").value)*100);const {error}=await supabase.from("billing_records").insert({customer_id:p.customer_id,property_id:p.id,job_id:el("chargeJob").value||null,record_type:el("chargeType").value,amount_pence:amount,currency:"gbp",status:"pending",invoice_sync_status:"pending",description:el("chargeDesc").value.trim()});if(error)return alert(error.message);e.target.reset();await load()});
