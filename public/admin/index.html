@@ -89,7 +89,47 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 </section>
 
 <section id="customersTab" class="hidden">
-<div class="card"><h3 class="section-title">Customers & properties</h3><div id="customersList"></div></div>
+
+<div class="card">
+  <h3 class="section-title">Assisted sign-up — safe tablet rehearsal</h3>
+  <p class="muted small"><strong>TEST MODE — no payments.</strong> Practise entering your own details and completing the customer handover. Nothing is sent to our database or Stripe, no subscription is created and no email is sent. Real customer sign-ups remain disabled until end-to-end payment checks pass.</p>
+  <form id="assistedSignupForm" class="stack">
+    <div class="grid">
+      <div class="field"><label for="asName">Customer's full name</label><input id="asName" autocomplete="off" required maxlength="120"></div>
+      <div class="field"><label for="asEmail">Customer's email for receipts and membership confirmation</label><input id="asEmail" type="email" required maxlength="250" autocomplete="off"></div>
+      <div class="field"><label for="asPhone">Contact telephone</label><input id="asPhone" type="tel" required maxlength="40"></div>
+      <div class="field"><label for="asFuel">Heating fuel</label><select id="asFuel" required><option value="gas">Gas</option><option value="lpg">LPG</option><option value="oil">Oil</option></select></div>
+      <div class="field"><label for="asAddress">Property address</label><input id="asAddress" required maxlength="180"></div>
+      <div class="field"><label for="asTown">Town</label><input id="asTown" required maxlength="100"></div>
+      <div class="field"><label for="asPostcode">Postcode</label><input id="asPostcode" required maxlength="14"></div>
+      <div class="field"><label for="asDateKind">When should the annual boiler service be?</label><select id="asDateKind"><option value="unknown">Not sure — contact me to arrange</option><option value="due">I know when my service is due</option><option value="preferred">I'd prefer a particular date</option></select></div>
+      <div class="field hidden" id="asDateField"><label for="asDate">Due or preferred date (not a confirmed appointment)</label><input id="asDate" type="date"></div>
+    </div>
+    <div class="notice">
+      <strong>Property Care 360: £19.99 per month</strong> · Initial 12-month agreement (£239.88 total), then monthly rolling.
+      Five priority call-outs each year with attendance and up to 30 minutes of assessment or diagnosis per visit, an annual eligible gas/LPG/oil boiler service, and an annual plumbing check.
+      Parts, repairs, additional labour, out-of-hours attendance and other exclusions are charged separately.
+      <a href="/terms/" target="_blank" rel="noopener">Read membership terms v1.7</a> and
+      <a href="/privacy/" target="_blank" rel="noopener">privacy notice</a> with the customer before continuing.
+    </div>
+    <div class="field"><label for="asEarly"><input id="asEarly" type="checkbox" style="width:auto"> Customer requests that services may begin during their first 14-day cooling-off period</label><span class="muted small">Optional. A reasonable proportionate charge for services already provided may apply if cancelled during the cooling-off period.</span></div>
+    <div class="field"><label for="asConsent"><input id="asConsent" type="checkbox" style="width:auto" required> I am the customer and I have read and agree to the 12-month membership and its recurring payments</label></div>
+    <div class="field"><label for="asSignature">Customer: type your full name to accept (not the engineer)</label><input id="asSignature" required maxlength="120" autocomplete="off"></div>
+    <p class="muted small">Rehearsal only: the consent and typed name below are for practising the handover, not binding acceptance. Do not enter a real customer's details. Selecting a preferred date does not book a visit.</p>
+    <button id="asSubmit" class="btn primary" type="submit">Run safe sign-up rehearsal (no payment)</button>
+    <div id="asStatus" role="status" aria-live="polite" class="muted small"></div>
+  </form>
+</div>
+
+<div class="card"><h3 class="section-title">Active customers & properties</h3>
+  <p class="muted small">Live customer totals exclude the owner account and the app-review demo. Archive only cancelled/test accounts; archived accounts remain available for records and restoration.</p>
+  <div id="customersList"></div>
+</div>
+<div class="card"><h3 class="section-title">Archived customer accounts</h3>
+  <p class="muted small">Historical invoices, subscription records and jobs are retained. Archiving does not cancel a Stripe subscription or delete a login.</p>
+  <div id="archivedCustomersList"></div>
+</div>
+<div class="card"><h3 class="section-title">App-review demo (excluded from live counts)</h3><div id="demoCustomersList"></div></div>
 </section>
 
 <section id="reportsTab" class="hidden">
@@ -342,8 +382,28 @@ function jobCard(j){
   const allowanceHtml=bal?'<div class="small" style="margin-top:6px">Annual priority call-outs: <strong>'+esc(bal.remaining_callouts)+' of '+esc(bal.annual_callouts_included)+' remaining</strong> (ends '+date(bal.membership_year_end)+')</div>':"";
   return '<div class="item'+(urgent?' urgent-job':'')+'"><div class="row mobile"><div><h4>'+(urgent?'<span class="tag urgent">URGENT</span> ':'')+esc(j.title)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+" · "+esc(p?.postcode||"")+'</div><div class="small" style="margin-top:5px">'+esc(j.description||"")+'</div><div style="margin-top:6px"><span class="tag '+calClass+'">'+esc(calText)+'</span>'+(j.calendar_event_url?' · <a href="'+esc(j.calendar_event_url)+'" target="_blank">Open calendar event</a>':'')+'</div></div>'+tag(j.status)+'</div><div class="grid" style="margin-top:10px"><div class="field"><label>Schedule</label><input class="jobDate" data-id="'+j.id+'" type="datetime-local" value="'+esc(local)+'"></div><div class="field"><label>Status</label><select class="jobStatus" data-id="'+j.id+'"><option value="requested">Requested</option><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option></select></div></div><div class="field" style="margin-top:8px"><label>Engineer notes</label><textarea class="jobNotes" data-id="'+j.id+'">'+esc(j.notes||"")+'</textarea></div><div class="actions" style="margin-top:8px"><button class="btn secondary saveJob" data-id="'+j.id+'">Save</button><button class="btn goodbtn completeJob" data-id="'+j.id+'">Complete job</button></div>'+(callout?'<div class="small" style="margin-top:8px">Completing an attended call-out counts one visit. Do not complete a call-out as attended if no visit took place.</div>':"")+allowanceHtml+(urgent?'<div class="actions" style="margin-top:10px">'+(dial?'<a class="btn danger" href="tel:'+esc(dial)+'">Call customer</a>':"")+'<button class="btn secondary openUrgentPhotos" type="button" data-id="'+esc(j.id)+'" data-customer="'+esc(j.customer_id)+'">View photos</button></div><div id="urgentPhotos-'+esc(j.id)+'" class="photo-links"></div>':"")+'</div>';
 }
+function isInternalCustomer(c){
+  const email=String(c?.email||"").toLowerCase();
+  return email==="adamglover561@gmail.com" || email==="app-review@propertycare360.co.uk";
+}
+function isArchivedCustomer(c){return Boolean(c?.archived_at);}
+function isLiveCustomer(c){return !isArchivedCustomer(c)&&!isInternalCustomer(c);}
+function canArchiveCustomer(c){
+  if(isInternalCustomer(c)||isArchivedCustomer(c))return false;
+  return !s.subscriptions.some(z=>z.customer_id===c.id&&["active","trialing","past_due","incomplete","paused","unpaid"].includes(z.status));
+}
+function renderCustomerCard(c,mode){
+  const ps=s.properties.filter(p=>p.customer_id===c.id);
+  const archiveAction=mode==="archive"
+    ?'<div class="actions" style="margin-top:10px"><button type="button" class="btn secondary archiveCustomer" data-id="'+esc(c.id)+'">Archive customer</button></div>'
+    :mode==="restore"
+    ?'<div class="actions" style="margin-top:10px"><button type="button" class="btn secondary restoreCustomer" data-id="'+esc(c.id)+'">Restore customer</button></div>'
+    :"";
+  return '<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+' · '+esc(c.phone||"No phone")+'</div><div style="margin-top:9px">'+ps.map(p=>'<div class="row" style="padding:7px 0;border-top:1px solid #263a57"><div><strong>'+esc(p.property_name||p.address_line1)+'</strong><div class="muted small">'+esc(p.address_line1+", "+p.town_city+", "+p.postcode)+' · '+esc((p.heating_fuel||"gas").toUpperCase())+'</div></div>'+(coverFor(p.id)?tag(coverFor(p.id).sub.status):'<span class="tag warn">not covered</span>')+'</div>').join("")+'</div>'+archiveAction+'</div>';
+}
 function render(){
-  el("nCustomers").textContent=s.customers.length;el("nProperties").textContent=s.properties.length;el("nOpenJobs").textContent=s.jobs.filter(j=>!["completed","canceled"].includes(j.status)).length;el("nCovered").textContent=s.properties.filter(p=>coverFor(p.id)).length;
+  const liveCustomers=s.customers.filter(isLiveCustomer);const liveIds=new Set(liveCustomers.map(c=>c.id));
+  el("nCustomers").textContent=liveCustomers.length;el("nProperties").textContent=s.properties.filter(p=>liveIds.has(p.customer_id)).length;el("nOpenJobs").textContent=s.jobs.filter(j=>liveIds.has(j.customer_id)&&!["completed","canceled"].includes(j.status)).length;el("nCovered").textContent=s.properties.filter(p=>liveIds.has(p.customer_id)&&coverFor(p.id)).length;
   const priorityJobs=[...s.jobs].sort((a,b)=>{
     const pa=String(a.title||"").startsWith("URGENT CALL-OUT")&&!["completed","canceled"].includes(a.status)?1:0;
     const pb=String(b.title||"").startsWith("URGENT CALL-OUT")&&!["completed","canceled"].includes(b.status)?1:0;
@@ -352,8 +412,10 @@ function render(){
   const incoming=priorityJobs.filter(j=>!["completed","canceled"].includes(j.status)).slice(0,8);
   el("incomingJobs").innerHTML=incoming.length?incoming.map(jobCard).join(""):'<div class="empty">No open jobs.</div>';
   el("jobQueue").innerHTML=s.jobs.length?priorityJobs.map(jobCard).join(""):'<div class="empty">No jobs yet.</div>';
-  el("recentCustomers").innerHTML=s.customers.slice(0,6).map(c=>'<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+" · "+esc(c.phone||"No phone")+"</div></div>").join("")||'<div class="empty">No customers yet.</div>';
-  el("customersList").innerHTML=s.customers.map(c=>{const ps=s.properties.filter(p=>p.customer_id===c.id);return '<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+" · "+esc(c.phone||"No phone")+'</div><div style="margin-top:9px">'+ps.map(p=>'<div class="row" style="padding:7px 0;border-top:1px solid #263a57"><div><strong>'+esc(p.property_name||p.address_line1)+'</strong><div class="muted small">'+esc(p.address_line1+", "+p.town_city+", "+p.postcode)+" · "+esc((p.heating_fuel||"gas").toUpperCase())+"</div></div>"+(coverFor(p.id)?tag(coverFor(p.id).sub.status):'<span class="tag warn">not covered</span>')+"</div>").join("")+"</div></div>"}).join("")||'<div class="empty">No customers yet.</div>';
+  el("recentCustomers").innerHTML=liveCustomers.slice(0,6).map(c=>'<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+" · "+esc(c.phone||"No phone")+"</div></div>").join("")||'<div class="empty">No customers yet.</div>';
+  el("customersList").innerHTML=liveCustomers.map(c=>renderCustomerCard(c,canArchiveCustomer(c)?"archive":"view")).join("")||'<div class="empty">No active customers yet.</div>';
+  el("archivedCustomersList").innerHTML=s.customers.filter(isArchivedCustomer).map(c=>renderCustomerCard(c,"restore")).join("")||'<div class="empty">No archived customers.</div>';
+  el("demoCustomersList").innerHTML=s.customers.filter(c=>String(c.email||"").toLowerCase()==="app-review@propertycare360.co.uk").map(c=>renderCustomerCard(c,"view")).join("")||'<div class="empty">No app-review demo.</div>';
   el("reportsList").innerHTML=s.reports.length?s.reports.map(r=>{const p=property(r.property_id),c=customer(r.customer_id);return '<div class="item"><div class="row"><div><h4>'+esc(r.report_type)+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+'</div><div class="small" style="margin-top:5px">'+esc(r.summary||"")+"</div></div><div class='muted small'>"+date(r.created_at)+"</div></div>"+(r.storage_path?'<div style="margin-top:8px"><button class="btn secondary openReport" data-path="'+esc(r.storage_path)+'">Open file</button></div>':"")+"</div>"}).join(""):'<div class="empty">No reports yet.</div>';
   el("billingList").innerHTML=s.billing.length?s.billing.map(b=>{const p=property(b.property_id),c=customer(b.customer_id);const inv=b.invoice_sync_status||"not_required";return '<div class="item"><div class="row mobile"><div><h4>'+esc(b.description||"Charge")+'</h4><div class="muted small">'+esc(c?.full_name||"")+" · "+esc(p?.property_name||p?.address_line1||"")+' · '+money(b.amount_pence)+'</div><div class="small" style="margin-top:5px">Invoice: '+esc(inv.replaceAll("_"," "))+(b.hosted_invoice_url?' · <a href="'+esc(b.hosted_invoice_url)+'" target="_blank">Open Stripe invoice</a>':'')+'</div></div>'+tag(b.status)+'</div><div class="actions" style="margin-top:8px">'+(b.status!=="paid"?'<button class="btn goodbtn markPaid" data-id="'+b.id+'">Mark paid</button>':"")+"</div></div>"}).join(""):'<div class="empty">No billing records yet.</div>';
   el("deletionList").innerHTML=s.deletions.length?s.deletions.map(d=>{const cust=d.customer_id?customer(d.customer_id):null;return '<div class="item"><div class="row mobile"><div><h4>'+esc(cust?.full_name||d.email||"Customer")+'</h4><div class="muted small">'+esc(d.email||cust?.email||"")+' · Requested '+date(d.requested_at)+'</div><div class="small" style="margin-top:5px">Status: '+esc(d.status)+'</div></div><div class="field" style="min-width:170px"><label>Request status</label><select class="deletionStatus" data-id="'+esc(d.id)+'"><option value="pending">Pending</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div></div>'}).join(""):'<div class="empty">No account deletion requests.</div>';
@@ -364,6 +426,18 @@ function render(){
   options();bind();
 }
 function bind(){
+  for(const [selector,action] of [[".archiveCustomer",true],[".restoreCustomer",false]]){
+    document.querySelectorAll(selector).forEach(button=>button.onclick=async()=>{
+      const target=s.customers.find(c=>c.id===button.dataset.id);
+      if(!target)return;
+      if(action&&!canArchiveCustomer(target)){alert("Active or internal customers cannot be archived.");return;}
+      if(!window.confirm((action?"Archive ":"Restore ")+target.full_name+"? Billing and service history will be preserved."))return;
+      button.disabled=true;
+      const {error}=await supabase.rpc("set_customer_archived",{p_customer_id:target.id,p_archived:action});
+      if(error){button.disabled=false;alert(error.message);return;}
+      await load();
+    });
+  }
   document.querySelectorAll(".jobStatus").forEach(x=>{const j=s.jobs.find(v=>v.id===x.dataset.id);if(j)x.value=j.status});
 
   document.querySelectorAll(".openUrgentPhotos").forEach(button=>button.onclick=async()=>{
@@ -407,6 +481,30 @@ async function saveJob(id,complete){
   const patch={status,scheduled_for:dt,notes:notesEl.value||null,updated_at:new Date().toISOString()};if(dt && status!=="completed" && status!=="canceled")patch.calendar_sync_status="pending";if(status==="completed")patch.completed_at=new Date().toISOString();
   const {error}=await supabase.from("jobs").update(patch).eq("id",id);if(error)return alert(error.message);await load();
 }
+
+const asDateKind=el("asDateKind");
+asDateKind.addEventListener("change",()=>{
+  const needsDate=asDateKind.value!=="unknown";
+  el("asDateField").classList.toggle("hidden",!needsDate);
+  el("asDate").required=needsDate;
+  if(!needsDate)el("asDate").value="";
+});
+el("assistedSignupForm").addEventListener("submit",event=>{
+  event.preventDefault();
+  const status=el("asStatus");
+  const typed=el("asSignature").value.trim().replace(/\s+/g," ").toLowerCase();
+  const entered=el("asName").value.trim().replace(/\s+/g," ").toLowerCase();
+  if(typed!==entered){
+    status.textContent="The customer name and typed signature must match. No details saved.";
+    return;
+  }
+  if(asDateKind.value!=="unknown"&&!el("asDate").value){
+    status.textContent="Choose a due/preferred date or select Not sure.";
+    return;
+  }
+  status.textContent="Rehearsal passed. No details were saved, no customer was created, no welcome email was sent and no card or subscription payment was taken. Real sign-up checkout is still disabled.";
+});
+
 el("newJobForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("newJobProperty").value);if(!p)return alert("Choose a property");const dt=el("newJobDate").value?new Date(el("newJobDate").value).toISOString():null;const {error}=await supabase.from("jobs").insert({property_id:p.id,customer_id:p.customer_id,job_type:el("newJobType").value,title:el("newJobTitle").value.trim(),description:el("newJobDesc").value.trim()||null,status:dt?"scheduled":"requested",scheduled_for:dt,duration_minutes:90,calendar_sync_status:dt?"pending":"not_required",booking_source:"admin",labour_covered:["annual_service","plumbing_check"].includes(el("newJobType").value)&&Boolean(coverFor(p.id))});if(error)return alert(error.message);e.target.reset();await load()});
 el("reportForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("reportProperty").value);if(!p)return;let path=null;const f=el("reportFile").files[0];if(f){path=p.customer_id+"/"+p.id+"/"+crypto.randomUUID()+"-"+f.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error:up}=await supabase.storage.from("home-care-reports").upload(path,f,{upsert:false,contentType:f.type||"application/octet-stream"});if(up)return alert(up.message)}const {error}=await supabase.from("reports").insert({job_id:el("reportJob").value||null,property_id:p.id,customer_id:p.customer_id,report_type:el("reportType").value,summary:el("reportSummary").value.trim(),file_url:null,storage_path:path});if(error)return alert(error.message);e.target.reset();await load()});
 el("chargeForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("chargeProperty").value);if(!p)return;const amount=Math.round(Number(el("chargeAmount").value)*100);const {error}=await supabase.from("billing_records").insert({customer_id:p.customer_id,property_id:p.id,job_id:el("chargeJob").value||null,record_type:el("chargeType").value,amount_pence:amount,currency:"gbp",status:"pending",invoice_sync_status:"pending",description:el("chargeDesc").value.trim()});if(error)return alert(error.message);e.target.reset();await load()});
