@@ -7,7 +7,6 @@ on:
       - public/**
       - supabase/migrations/**
       - tests/admin-archive-rehearsal.test.cjs
-      - tests/admin-archive-rehearsal.test.cjs
       - tests/membership-contract.test.cjs
       - tests/webhook.test.cjs
       - tests/owner-push.test.cjs
@@ -19,6 +18,7 @@ on:
   pull_request:
     paths:
       - public/**
+      - tests/admin-archive-rehearsal.test.cjs
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
       - tests/webhook.test.cjs
