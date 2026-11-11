@@ -91,8 +91,14 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
 <section id="customersTab" class="hidden">
 
 <div class="card">
-  <h3 class="section-title">Assisted sign-up — safe tablet rehearsal</h3>
-  <p class="muted small"><strong>TEST MODE — no payments.</strong> Practise entering your own details and completing the customer handover. Nothing is sent to our database or Stripe, no subscription is created and no email is sent. Real customer sign-ups remain disabled until end-to-end payment checks pass.</p>
+  <h3 class="section-title">Assisted customer sign-up</h3>
+  <p>Sign out of Admin and hand the tablet to the customer. They can create an account or sign in, add their property, review the membership terms and pay securely with Stripe.</p>
+  <p><strong>£19.99/month for the first property</strong> (£239.88 over the initial 12 months). Additional properties on the same account are £17.99/month each.</p>
+  <button id="startLiveSignup" class="btn primary" type="button">Start live customer sign-up</button>
+  <p id="liveSignupStatus" role="status" aria-live="polite"></p>
+  <p class="muted small">On a shared tablet, ask the customer to log out of the customer portal when finished. They can also join on their own device at propertycare360.co.uk/app/?signup=1.</p>
+  <details><summary>Practise with the rehearsal form</summary>
+  <p class="muted small"><strong>TEST MODE — no payments.</strong> Practise entering your own details and completing the customer handover. Nothing is sent to our database or Stripe, no subscription is created and no email is sent. Use the live sign-up button above to enrol a customer.</p>
   <form id="assistedSignupForm" class="stack">
     <div class="grid">
       <div class="field"><label for="asName">Customer's full name</label><input id="asName" autocomplete="off" required maxlength="120"></div>
@@ -119,6 +125,7 @@ button,input,select,textarea{font:inherit}.wrap{max-width:1180px;margin:0 auto;p
     <button id="asSubmit" class="btn primary" type="submit">Run safe sign-up rehearsal (no payment)</button>
     <div id="asStatus" role="status" aria-live="polite" class="muted small"></div>
   </form>
+  </details>
 </div>
 
 <div class="card"><h3 class="section-title">Active customers & properties</h3>
@@ -482,6 +489,22 @@ async function saveJob(id,complete){
   const {error}=await supabase.from("jobs").update(patch).eq("id",id);if(error)return alert(error.message);await load();
 }
 
+el("startLiveSignup").addEventListener("click",async event=>{
+  const button=event.currentTarget;
+  const status=el("liveSignupStatus");
+  button.disabled=true;
+  status.textContent="Signing out of Admin…";
+  try{
+    const {error}=await supabase.auth.signOut({scope:"local"});
+    if(error)throw error;
+    const {data,error:sessionError}=await supabase.auth.getSession();
+    if(sessionError||data.session)throw new Error("Session still active");
+    location.replace("/app/?signup=1");
+  }catch{
+    status.textContent="Could not sign out securely. Keep the tablet with you and retry when connected.";
+    button.disabled=false;
+  }
+});
 const asDateKind=el("asDateKind");
 asDateKind.addEventListener("change",()=>{
   const needsDate=asDateKind.value!=="unknown";
@@ -502,7 +525,7 @@ el("assistedSignupForm").addEventListener("submit",event=>{
     status.textContent="Choose a due/preferred date or select Not sure.";
     return;
   }
-  status.textContent="Rehearsal passed. No details were saved, no customer was created, no welcome email was sent and no card or subscription payment was taken. Real sign-up checkout is still disabled.";
+  status.textContent="Rehearsal passed. No details were saved, no customer was created, no welcome email was sent and no card or subscription payment was taken. Use Start live customer sign-up to enrol a customer.";
 });
 
 el("newJobForm").addEventListener("submit",async e=>{e.preventDefault();const p=property(el("newJobProperty").value);if(!p)return alert("Choose a property");const dt=el("newJobDate").value?new Date(el("newJobDate").value).toISOString():null;const {error}=await supabase.from("jobs").insert({property_id:p.id,customer_id:p.customer_id,job_type:el("newJobType").value,title:el("newJobTitle").value.trim(),description:el("newJobDesc").value.trim()||null,status:dt?"scheduled":"requested",scheduled_for:dt,duration_minutes:90,calendar_sync_status:dt?"pending":"not_required",booking_source:"admin",labour_covered:["annual_service","plumbing_check"].includes(el("newJobType").value)&&Boolean(coverFor(p.id))});if(error)return alert(error.message);e.target.reset();await load()});
