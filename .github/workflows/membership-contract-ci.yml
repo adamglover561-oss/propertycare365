@@ -2,13 +2,15 @@ name: Property Care 360 membership contract checks
 
 on:
   push:
-    branches: [main, feature/pc360-initial-12-month-term-20261012]
+    branches: [main, feature/pc360-initial-12-month-term-20261012, feature/assisted-signup-tablet]
     paths:
       - public/**
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
+      - tests/assisted-signup.test.cjs
+      - supabase/functions/assisted-signup/index.ts
       - tests/webhook.test.cjs
-      - tests/owner-push.test.cjs
+      - tests/owner-push.test.cjs tests/assisted-signup.test.cjs
       - tests/membership-welcome-integration.test.cjs
       - tests/membership-welcome-flow.test.cjs
       - supabase/functions/stripe-webhook/index.ts
@@ -19,6 +21,8 @@ on:
       - public/**
       - supabase/migrations/**
       - tests/membership-contract.test.cjs
+      - tests/assisted-signup.test.cjs
+      - supabase/functions/assisted-signup/index.ts
       - tests/webhook.test.cjs
       - tests/owner-push.test.cjs
       - tests/membership-welcome-flow.test.cjs
