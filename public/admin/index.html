@@ -399,6 +399,21 @@ function canArchiveCustomer(c){
   if(isInternalCustomer(c)||isArchivedCustomer(c))return false;
   return !s.subscriptions.some(z=>z.customer_id===c.id&&["active","trialing","past_due","incomplete","paused","unpaid"].includes(z.status));
 }
+function canDeleteProperty(p,c){
+  return isLiveCustomer(c)
+    && !s.covers.some(row=>row.property_id===p.id)
+    && !s.jobs.some(row=>row.property_id===p.id)
+    && !s.reports.some(row=>row.property_id===p.id)
+    && !s.billing.some(row=>row.property_id===p.id);
+}
+function renderCustomerProperty(p,c){
+  const cover=coverFor(p.id);
+  const status=cover?tag(cover.sub.status):'<span class="tag warn">not covered</span>';
+  const remove=canDeleteProperty(p,c)
+    ?'<button type="button" class="btn danger deleteProperty" data-id="'+esc(p.id)+'">Remove property</button>'
+    :"";
+  return '<div class="row mobile" style="padding:7px 0;border-top:1px solid #263a57"><div><strong>'+esc(p.property_name||p.address_line1)+'</strong><div class="muted small">'+esc(p.address_line1+", "+p.town_city+", "+p.postcode)+' · '+esc((p.heating_fuel||"gas").toUpperCase())+'</div></div><div class="actions">'+status+remove+'</div></div>';
+}
 function renderCustomerCard(c,mode){
   const ps=s.properties.filter(p=>p.customer_id===c.id);
   const archiveAction=mode==="archive"
@@ -406,7 +421,7 @@ function renderCustomerCard(c,mode){
     :mode==="restore"
     ?'<div class="actions" style="margin-top:10px"><button type="button" class="btn secondary restoreCustomer" data-id="'+esc(c.id)+'">Restore customer</button></div>'
     :"";
-  return '<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+' · '+esc(c.phone||"No phone")+'</div><div style="margin-top:9px">'+ps.map(p=>'<div class="row" style="padding:7px 0;border-top:1px solid #263a57"><div><strong>'+esc(p.property_name||p.address_line1)+'</strong><div class="muted small">'+esc(p.address_line1+", "+p.town_city+", "+p.postcode)+' · '+esc((p.heating_fuel||"gas").toUpperCase())+'</div></div>'+(coverFor(p.id)?tag(coverFor(p.id).sub.status):'<span class="tag warn">not covered</span>')+'</div>').join("")+'</div>'+archiveAction+'</div>';
+  return '<div class="item"><h4>'+esc(c.full_name)+'</h4><div class="muted small">'+esc(c.email)+' · '+esc(c.phone||"No phone")+'</div><div style="margin-top:9px">'+ps.map(p=>renderCustomerProperty(p,c)).join("")+'</div>'+archiveAction+'</div>';
 }
 function render(){
   const liveCustomers=s.customers.filter(isLiveCustomer);const liveIds=new Set(liveCustomers.map(c=>c.id));
@@ -433,6 +448,27 @@ function render(){
   options();bind();
 }
 function bind(){
+  document.querySelectorAll(".deleteProperty").forEach(button=>button.onclick=async()=>{
+    const p=property(button.dataset.id);
+    if(!p||!canDeleteProperty(p,customer(p.customer_id)))return;
+    const address=[p.address_line1,p.town_city,p.postcode].filter(Boolean).join(", ");
+    const fuel=(p.heating_fuel||"gas").toUpperCase();
+    if(!window.confirm("Permanently remove "+address+" ("+fuel+")?"))return;
+    button.disabled=true;
+    try{
+      const {error}=await supabase.rpc("delete_unused_property",{p_property_id:p.id});
+      if(error)throw error;
+    }catch(error){
+      button.disabled=false;
+      alert(error.message||"Could not remove the property.");
+      return;
+    }
+    try{
+      await load();
+    }catch{
+      alert("Property removed. Reload the dashboard to refresh the list.");
+    }
+  });
   for(const [selector,action] of [[".archiveCustomer",true],[".restoreCustomer",false]]){
     document.querySelectorAll(selector).forEach(button=>button.onclick=async()=>{
       const target=s.customers.find(c=>c.id===button.dataset.id);
